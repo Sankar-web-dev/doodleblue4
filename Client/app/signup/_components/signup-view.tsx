@@ -12,12 +12,12 @@ export function SignupView() {
       <AuthBrandPanel
         headline={
           <>
-            Get started
+            Join the
             <br />
-            <span className="text-[oklch(0.78_0.14_262)]">in seconds.</span>
+            <span className="text-[oklch(0.80_0.16_195)]">arena.</span>
           </>
         }
-        subtitle="Create your account to get started — it takes less than a minute."
+        subtitle="Create your account to start booking and unlock member perks."
         features={FEATURES}
       />
 

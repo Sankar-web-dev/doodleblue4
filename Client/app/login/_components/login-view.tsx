@@ -12,9 +12,9 @@ export function LoginView() {
       <AuthBrandPanel
         headline={
           <>
-            Manage access
+            Level up your
             <br />
-            <span className="text-[oklch(0.78_0.14_262)]">with confidence.</span>
+            <span className="text-[oklch(0.80_0.16_195)]">game centre.</span>
           </>
         }
         subtitle="Sign in to manage bookings, games, and memberships."

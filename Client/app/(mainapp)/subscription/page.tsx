@@ -216,7 +216,7 @@ function SubscriptionView() {
                   <div className="flex items-center justify-between">
                     <CardTitle>{plan.name}</CardTitle>
                     {featured && !isCurrent && (
-                      <Badge className="bg-primary/10 text-primary">
+                      <Badge className="animate-pulse-glow bg-primary/15 text-primary border-primary/40">
                         Popular
                       </Badge>
                     )}
