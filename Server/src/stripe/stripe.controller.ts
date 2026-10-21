@@ -10,42 +10,49 @@ import { RequirePasswordChangedGuard } from '../auth/require-password-changed.gu
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import type { UserModel } from '../generated/prisma/models.js';
 import { StripeService } from './stripe.service.js';
+import { MembershipPlansService } from '../membership-plans/membership-plans.service.js';
 import { CheckoutDto } from './dto.js';
 
 /**
- * Subscription endpoints — the client only sends a plan key and receives a
- * Stripe-hosted Checkout URL. Auth identity comes from the JWT (AuthGuard),
- * never from the request body.
+ * Authenticated membership endpoints. The webhook is unauthenticated and
+ * lives on the separate StripeWebhookController.
  */
 @Controller('subscriptions')
 @UseGuards(AuthGuard, RequirePasswordChangedGuard)
 export class StripeController {
-  constructor(private readonly stripeService: StripeService) {}
+  constructor(
+    private readonly stripe: StripeService,
+    private readonly plans: MembershipPlansService,
+  ) {}
 
-  /** Plan keys that have a Stripe Price configured. */
-  @Get('plans')
-  plans() {
-    return { data: { plans: this.stripeService.listPlans() } };
-  }
-
-  /** The current user's stored subscription record. */
-  @Get('me')
-  async me(@CurrentUser() user: UserModel) {
-    return {
-      data: {
-        subscription: await this.stripeService.getSubscription(user.id),
-      },
-    };
-  }
-
-  /** Start a Stripe Checkout Session for the given plan. */
+  /**
+   * Start a membership checkout — the plan + billing interval are sent; the
+   * actual Stripe Price ID is resolved server-side from the plan row.
+   */
   @Post('checkout')
-  async checkout(@CurrentUser() user: UserModel, @Body() dto: CheckoutDto) {
-    return {
-      data: await this.stripeService.createCheckoutSession(
-        { id: user.id, email: user.email },
-        dto.plan,
-      ),
-    };
+  async checkout(
+    @Body() dto: CheckoutDto,
+    @CurrentUser() user: UserModel,
+  ) {
+    const data = await this.stripe.createMembershipCheckout(
+      { id: user.id, email: user.email },
+      dto.membershipPlanId,
+      dto.billingInterval,
+    );
+    return { data };
+  }
+
+  /** The caller's subscription record (with the joined plan details). */
+  @Get('me')
+  async mySubscription(@CurrentUser() user: UserModel) {
+    const subscription = await this.stripe.getSubscription(user.id);
+    return { data: subscription ?? null };
+  }
+
+  /** Active membership plans for the pricing page. */
+  @Get('plans')
+  async listPlans() {
+    const data = await this.plans.listPublicPlans();
+    return { data };
   }
 }

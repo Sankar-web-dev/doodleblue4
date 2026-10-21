@@ -6,7 +6,7 @@ import {
   subscriptionsApi,
   SUBSCRIPTION_KEY,
   SUBSCRIPTION_PLANS_KEY,
-  type SubscriptionPlan,
+  type BillingInterval,
 } from "@/api/subscriptions.api";
 import { ApiRequestError } from "@/lib/api";
 
@@ -14,16 +14,15 @@ import { ApiRequestError } from "@/lib/api";
 export function useSubscription() {
   return useQuery({
     queryKey: SUBSCRIPTION_KEY,
-    queryFn: () =>
-      subscriptionsApi.getMine().then((res) => res.subscription),
+    queryFn: () => subscriptionsApi.getMine(),
   });
 }
 
-/** Plan keys that have a Stripe Price configured on the server. */
+/** Active membership plans for the pricing page. */
 export function useSubscriptionPlans() {
   return useQuery({
     queryKey: SUBSCRIPTION_PLANS_KEY,
-    queryFn: () => subscriptionsApi.listPlans().then((res) => res.plans),
+    queryFn: () => subscriptionsApi.listPlans(),
     retry: 1,
   });
 }
@@ -31,8 +30,14 @@ export function useSubscriptionPlans() {
 /** Start Stripe Checkout — creates the session then redirects the browser. */
 export function useCheckout() {
   return useMutation({
-    mutationFn: (plan: SubscriptionPlan) =>
-      subscriptionsApi.createCheckout(plan),
+    mutationFn: (input: {
+      membershipPlanId: string;
+      billingInterval: BillingInterval;
+    }) =>
+      subscriptionsApi.createCheckout(
+        input.membershipPlanId,
+        input.billingInterval
+      ),
     onSuccess: ({ url }) => {
       if (url) window.location.assign(url);
     },

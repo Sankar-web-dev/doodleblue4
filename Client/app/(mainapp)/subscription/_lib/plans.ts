@@ -1,55 +1,46 @@
-import type { SubscriptionPlan } from "@/api/subscriptions.api";
+import type {
+  BillingInterval,
+  MembershipPlan,
+} from "@/api/subscriptions.api";
 
-export interface PlanCard {
-  key: SubscriptionPlan;
-  name: string;
-  price: string;
-  period: string;
-  description: string;
-  features: string[];
-  featured?: boolean;
+export const INTERVAL_OPTIONS: {
+  value: BillingInterval;
+  label: string;
+  periodSuffix: string;
+}[] = [
+  { value: "MONTHLY", label: "Monthly", periodSuffix: "/month" },
+  { value: "YEARLY", label: "Yearly", periodSuffix: "/year" },
+];
+
+/** The price a plan charges for the given billing interval (null = N/A). */
+export function priceFor(plan: MembershipPlan, interval: BillingInterval) {
+  return interval === "MONTHLY" ? plan.monthlyPrice : plan.yearlyPrice;
 }
 
-/**
- * Display copy for the plan cards. Prices must match the Stripe Prices
- * configured on the server (STRIPE_PRICE_* env vars).
- */
-export const PLAN_CARDS: PlanCard[] = [
-  {
-    key: "basic",
-    name: "Basic",
-    price: "$199",
-    period: "/month",
-    description: "For individuals getting started.",
-    features: [
-      "Single user account",
-      "Core features",
-      "Email support",
-    ],
-  },
-  {
-    key: "pro",
-    name: "Pro",
-    price: "$499",
-    period: "/month",
-    description: "For growing teams that need more.",
-    features: [
-      "Everything in Basic",
-      "Priority support",
-      "Advanced features",
-    ],
-    featured: true,
-  },
-  {
-    key: "premium",
-    name: "Premium",
-    price: "$3,999",
-    period: "/year",
-    description: "Best value — billed annually.",
-    features: [
-      "Everything in Pro",
-      "Dedicated support",
-      "Early access to new features",
-    ],
-  },
-];
+/** Does the plan offer the given billing interval? */
+export function offersInterval(
+  plan: MembershipPlan,
+  interval: BillingInterval
+) {
+  return priceFor(plan, interval) != null;
+}
+
+/** Display label — e.g. "Basic Monthly". */
+export function planDisplayName(plan: MembershipPlan, interval: BillingInterval) {
+  return `${plan.name} ${interval === "MONTHLY" ? "Monthly" : "Yearly"}`;
+}
+
+/** Prisma Decimal arrives as a string — normalize to a number. */
+export function money(n: string | number | null | undefined): number {
+  return n == null ? 0 : typeof n === "number" ? n : Number(n);
+}
+
+const inr = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
+export function formatINR(n: string | number | null | undefined) {
+  return inr.format(money(n));
+}

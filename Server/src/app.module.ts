@@ -6,6 +6,10 @@ import { AppController } from './app.controller.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
+import { GamesModule } from './games/games.module.js';
+import { MembershipPlansModule } from './membership-plans/membership-plans.module.js';
+import { BookingsModule } from './bookings/bookings.module.js';
+import { PaymentsModule } from './payments/payments.module.js';
 import { StripeModule } from './stripe/stripe.module.js';
 import { ApiExceptionFilter } from './common/api-exception.filter.js';
 import { EnvelopeInterceptor } from './common/envelope.interceptor.js';
@@ -29,6 +33,10 @@ import { StorageModule } from './storage/storage.module.js';
     StorageModule,
     AuthModule,
     UsersModule,
+    GamesModule,
+    MembershipPlansModule,
+    BookingsModule,
+    PaymentsModule,
     StripeModule,
   ],
   controllers: [AppController],

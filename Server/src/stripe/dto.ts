@@ -1,10 +1,14 @@
-import { IsIn, IsNotEmpty, IsString } from 'class-validator';
-import { SUBSCRIPTION_PLANS } from './plans.js';
+import { IsEnum, IsUUID } from 'class-validator';
+import { BillingInterval } from '../generated/prisma/enums.js';
 
+/**
+ * Membership checkout request — only the plan id + interval come from the
+ * client; the Stripe Price ID is resolved server-side from the plan row.
+ */
 export class CheckoutDto {
-  /** Plan key — must be one of the configured SUBSCRIPTION_PLANS. */
-  @IsString()
-  @IsNotEmpty()
-  @IsIn(SUBSCRIPTION_PLANS)
-  plan!: string;
+  @IsUUID()
+  membershipPlanId!: string;
+
+  @IsEnum(BillingInterval)
+  billingInterval!: BillingInterval;
 }

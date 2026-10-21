@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, CreditCard, Loader2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +17,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { PLAN_CARDS } from "./_lib/plans";
+import type { BillingInterval } from "@/api/subscriptions.api";
+import {
+  formatINR,
+  INTERVAL_OPTIONS,
+  money,
+  offersInterval,
+  priceFor,
+} from "./_lib/plans";
 import {
   useCheckout,
   useSubscription,
@@ -58,8 +65,9 @@ function formatDate(iso: string | null) {
 function SubscriptionView() {
   const searchParams = useSearchParams();
   const { data: subscription, isPending } = useSubscription();
-  const { data: configuredPlans } = useSubscriptionPlans();
+  const { data: plans, isPending: plansPending } = useSubscriptionPlans();
   const checkout = useCheckout();
+  const [interval, setInterval] = useState<BillingInterval>("MONTHLY");
 
   // Stripe sends users back to /subscription?cancelled=true on abort.
   useEffect(() => {
@@ -80,7 +88,7 @@ function SubscriptionView() {
           Billing
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your subscription and choose a plan.
+          Manage your membership and booking discounts.
         </p>
       </div>
 
@@ -89,7 +97,7 @@ function SubscriptionView() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <CreditCard className="h-4 w-4 text-primary" />
-            Your subscription
+            Your membership
           </CardTitle>
           <CardDescription>
             Current plan and billing status for your account.
@@ -100,15 +108,31 @@ function SubscriptionView() {
             <Skeleton className="h-16 w-full" />
           ) : subscription ? (
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <p className="font-display text-2xl font-bold capitalize">
-                  {subscription.plan ?? "Subscription"}
+                  {subscription.membershipPlan?.name ??
+                    subscription.plan ??
+                    "Membership"}
                 </p>
                 {statusBadge(subscription.status)}
+                {subscription.billingInterval && (
+                  <Badge variant="outline">
+                    {subscription.billingInterval === "MONTHLY"
+                      ? "Monthly"
+                      : "Yearly"}{" "}
+                    billing
+                  </Badge>
+                )}
                 {subscription.cancelAtPeriodEnd && (
                   <Badge variant="outline">Cancels at period end</Badge>
                 )}
               </div>
+              {subscription.membershipPlan && (
+                <p className="text-sm text-muted-foreground">
+                  {money(subscription.membershipPlan.discountPercent)}% off
+                  every booking
+                </p>
+              )}
               {subscription.currentPeriodEnd && (
                 <p className="text-sm text-muted-foreground">
                   {subscription.cancelAtPeriodEnd ||
@@ -120,96 +144,154 @@ function SubscriptionView() {
               )}
               {isPastDue && (
                 <p className="flex items-center gap-1.5 text-sm text-amber-600">
-                  <TriangleAlert className="h-4 w-4" />
-                  A payment failed — update your payment method to keep
-                  access.
+                  <TriangleAlert className="h-4 w-4" />A payment failed — update
+                  your payment method to keep access.
                 </p>
               )}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              You don&apos;t have a subscription yet. Choose a plan below to
-              get started.
+              You don&apos;t have a membership yet. Choose a plan below to
+              unlock booking discounts.
             </p>
           )}
         </CardContent>
       </Card>
 
-      {/* Plan cards */}
-      <div className="grid animate-fade-up gap-4 md:grid-cols-3">
-        {PLAN_CARDS.map((plan) => {
-          const isCurrent =
-            isActive && subscription?.plan === plan.key;
-          const isConfigured =
-            !configuredPlans || configuredPlans.includes(plan.key);
-          const isCheckingOut =
-            checkout.isPending && checkout.variables === plan.key;
-
-          return (
-            <Card
-              key={plan.key}
-              className={cn(
-                "glass-card flex h-full flex-col transition-all hover:-translate-y-0.5",
-                plan.featured && "border-primary/40 ring-1 ring-primary/30"
-              )}
-            >
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>{plan.name}</CardTitle>
-                  {plan.featured && (
-                    <Badge className="bg-primary/10 text-primary">
-                      Popular
-                    </Badge>
-                  )}
-                  {isCurrent && (
-                    <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600">
-                      Current plan
-                    </Badge>
-                  )}
-                </div>
-                <CardDescription>{plan.description}</CardDescription>
-                <p className="pt-2">
-                  <span className="font-display text-3xl font-bold">
-                    {plan.price}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {plan.period}
-                  </span>
-                </p>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-4">
-                <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2">
-                      <Check className="h-4 w-4 shrink-0 text-primary" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  className="mt-auto w-full"
-                  variant={plan.featured ? "default" : "outline"}
-                  disabled={
-                    isCurrent || !isConfigured || checkout.isPending
-                  }
-                  onClick={() => checkout.mutate(plan.key)}
-                >
-                  {isCheckingOut && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {isCurrent
-                    ? "Current plan"
-                    : !isConfigured
-                      ? "Unavailable"
-                      : isActive
-                        ? `Switch to ${plan.name}`
-                        : `Subscribe to ${plan.name}`}
-                </Button>
-              </CardContent>
-            </Card>
-          );
-        })}
+      {/* Interval toggle */}
+      <div className="flex animate-fade-up items-center gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 w-fit">
+        {INTERVAL_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setInterval(opt.value)}
+            className={cn(
+              "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
+              interval === opt.value
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
+
+      {/* Plan cards */}
+      {plansPending ? (
+        <div className="grid animate-fade-up gap-4 md:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-72 w-full" />
+          ))}
+        </div>
+      ) : !plans?.length ? (
+        <Card className="glass-card animate-fade-up">
+          <CardContent className="p-6 text-sm text-muted-foreground">
+            No membership plans are available right now.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid animate-fade-up gap-4 md:grid-cols-3">
+          {plans.map((plan, index) => {
+            const price = priceFor(plan, interval);
+            const unavailable = !offersInterval(plan, interval);
+            const featured = plan.name.toLowerCase() === "pro";
+            const isCurrent =
+              isActive &&
+              subscription?.membershipPlanId === plan.id &&
+              subscription?.billingInterval === interval;
+            const isCheckingOut =
+              checkout.isPending &&
+              checkout.variables?.membershipPlanId === plan.id;
+
+            return (
+              <Card
+                key={plan.id}
+                className={cn(
+                  "glass-card flex h-full flex-col transition-all hover:-translate-y-0.5",
+                  featured && "border-primary/40 ring-1 ring-primary/30"
+                )}
+              >
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>{plan.name}</CardTitle>
+                    {featured && !isCurrent && (
+                      <Badge className="bg-primary/10 text-primary">
+                        Popular
+                      </Badge>
+                    )}
+                    {isCurrent && (
+                      <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600">
+                        Current plan
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription>{plan.description}</CardDescription>
+                  <p className="pt-2">
+                    {unavailable ? (
+                      <span className="font-display text-lg font-semibold text-muted-foreground">
+                        Not available{" "}
+                        {interval === "MONTHLY" ? "monthly" : "yearly"}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="font-display text-3xl font-bold">
+                          {formatINR(price)}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {interval === "MONTHLY" ? "/month" : "/year"}
+                        </span>
+                      </>
+                    )}
+                  </p>
+                </CardHeader>
+                <CardContent className="flex flex-1 flex-col gap-4">
+                  <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 shrink-0 text-primary" />
+                      {money(plan.discountPercent)}% off every booking
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 shrink-0 text-primary" />
+                      Discount auto-applied at checkout
+                    </li>
+                    {index > 0 && (
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 shrink-0 text-primary" />
+                        Everything in {plans[index - 1].name}
+                      </li>
+                    )}
+                  </ul>
+                  <Button
+                    className="mt-auto w-full"
+                    variant={featured ? "default" : "outline"}
+                    disabled={
+                      isCurrent || unavailable || checkout.isPending
+                    }
+                    onClick={() =>
+                      checkout.mutate({
+                        membershipPlanId: plan.id,
+                        billingInterval: interval,
+                      })
+                    }
+                  >
+                    {isCheckingOut && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {isCurrent
+                      ? "Current plan"
+                      : unavailable
+                        ? "Unavailable"
+                        : isActive
+                          ? `Switch to ${plan.name}`
+                          : `Subscribe to ${plan.name}`}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

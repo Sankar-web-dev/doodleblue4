@@ -18,6 +18,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed": "tsx scripts/seed-super-admin.ts",
+    "seed:catalog": "tsx scripts/seed-catalog.ts",
     "stripe": "stripe listen --forward-to localhost:5000/api/v1/stripe/webhook",
     "postinstall": "prisma skills sync || exit 0"
   },
