@@ -7,6 +7,7 @@
   "scripts": {
     "client": "pnpm --filter ./Client dev",
     "server": "pnpm --filter ./Server dev",
+    "stripe": "pnpm --filter ./Server stripe",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "husky",
     "lint": "pnpm --filter ./Client lint && pnpm --filter ./Server lint"
