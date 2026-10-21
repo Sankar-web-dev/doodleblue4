@@ -3,7 +3,11 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  CalendarDays,
   CreditCard,
+  Crown,
+  Gamepad2,
+  Receipt,
   ShieldCheck,
   Users,
   UserCheck,
@@ -106,6 +110,35 @@ export default function DashboardPage() {
           </Card>
         </Link>
       </div>
+
+      {/* Admin quick links */}
+      {admin && (
+        <div className="animate-fade-up">
+          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
+            Management
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { href: "/bookings", label: "Bookings", icon: CalendarDays },
+              { href: "/games",    label: "Games",    icon: Gamepad2 },
+              { href: "/plans",    label: "Plans",    icon: Crown },
+              { href: "/payments", label: "Payments", icon: Receipt },
+            ].map((item) => (
+              <Link key={item.href} href={item.href} className="group">
+                <Card className="glass-card h-full transition-all group-hover:-translate-y-0.5">
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <item.icon className="h-4 w-4" />
+                    </div>
+                    <span className="text-sm font-medium">{item.label}</span>
+                    <ArrowRight className="ml-auto h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Account card */}
       {user && (

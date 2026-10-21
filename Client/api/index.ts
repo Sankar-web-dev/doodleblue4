@@ -6,5 +6,9 @@
  */
 
 export * from "./auth.api";
+export * from "./bookings.api";
+export * from "./games.api";
+export * from "./membership-plans.api";
+export * from "./payments.api";
 export * from "./subscriptions.api";
 export * from "./users.api";

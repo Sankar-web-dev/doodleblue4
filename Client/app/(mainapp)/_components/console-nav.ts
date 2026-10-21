@@ -1,6 +1,10 @@
 import {
+  CalendarDays,
   CreditCard,
+  Crown,
+  Gamepad2,
   LayoutDashboard,
+  Receipt,
   Users,
 } from "lucide-react";
 
@@ -17,7 +21,11 @@ export type NavItem = {
  * non-admin users (the server enforces the same restriction).
  */
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard",    label: "Dashboard", icon: LayoutDashboard },
-  { href: "/users",        label: "Users",     icon: Users,          adminOnly: true },
-  { href: "/subscription", label: "Billing",   icon: CreditCard },
+  { href: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
+  { href: "/bookings",     label: "Bookings",     icon: CalendarDays,    adminOnly: true },
+  { href: "/games",        label: "Games",        icon: Gamepad2,        adminOnly: true },
+  { href: "/plans",        label: "Plans",        icon: Crown,           adminOnly: true },
+  { href: "/payments",     label: "Payments",     icon: Receipt,         adminOnly: true },
+  { href: "/users",        label: "Users",        icon: Users,           adminOnly: true },
+  { href: "/subscription", label: "Billing",      icon: CreditCard },
 ];
