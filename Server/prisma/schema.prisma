@@ -8,24 +8,80 @@ datasource db {
 }
 
 // ======================================================
-// AUTHENTICATION AND RBAC
+// ENUMS
+// ======================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  CUSTOMER
+}
+
+enum GameStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum BookingPaymentMethod {
+  STRIPE
+  PAY_AT_CENTRE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentType {
+  GAME_BOOKING
+  MEMBERSHIP
+}
+
+enum MembershipStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  INCOMPLETE
+  CANCELLED
+  EXPIRED
+  UNPAID
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+// ======================================================
+// USERS
+// No dynamic RBAC. The app has only a shop owner/admin
+// and customers. Keep role values limited to this enum.
 // ======================================================
 
 model User {
-  id                 String  @id @default(uuid())
+  id                 String   @id @default(uuid())
   name               String
-  email              String  @unique
+  email              String   @unique
   passwordHash       String
-  role               String
-  roleId             String?
+  role               UserRole @default(CUSTOMER)
   image              String?
-  mustChangePassword Boolean @default(false)
-  isActive           Boolean @default(true)
+  mustChangePassword Boolean  @default(false)
+  isActive           Boolean  @default(true)
 
-  roleRef Role? @relation(fields: [roleId], references: [id], onDelete: SetNull)
-
-  subscription  Subscription?
-  createdRoles  Role[]         @relation("RoleCreatedBy")
+  subscription Subscription?
+  bookings     Booking[]
+  payments     Payment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -35,48 +91,196 @@ model User {
   @@index([createdAt])
 }
 
-model Role {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  description String  @default("")
-  permissions Json    @default("[]")
-  isSystem    Boolean @default(false)
-  isActive    Boolean @default(true)
+// ======================================================
+// GAMES
+// A game is bookable directly; there are no separate
+// station/table entities in this version.
+// pricePerHour is stored in the currency's major unit,
+// e.g. INR 200.00. Always calculate prices on the server.
+// ======================================================
 
-  createdById String?
-  createdBy   User?   @relation("RoleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+model Game {
+  id             String     @id @default(uuid())
+  name           String
+  slug           String     @unique
+  description    String     @default("")
+  category       String
+  imageUrl       String?
+  pricePerHour   Decimal    @db.Decimal(10, 2)
+  minBookingMins Int        @default(60)
+  maxBookingMins Int        @default(240)
+  capacity       Int        @default(1)
+  status         GameStatus @default(ACTIVE)
+  sortOrder      Int        @default(0)
 
-  users     User[]
+  bookings Booking[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([status, sortOrder])
+  @@index([category])
+  @@index([name])
 }
 
 // ======================================================
-// BILLING (Stripe)
-// Mirrors the user's Stripe subscription — updated by the
-// /stripe/webhook receiver, one row per user.
+// MEMBERSHIP PLANS
+// One plan can offer monthly and yearly billing. Configure
+// Stripe recurring Price IDs in the dashboard; never accept
+// a price ID or discount percentage from the browser.
+// ======================================================
+
+model MembershipPlan {
+  id                    String          @id @default(uuid())
+  name                  String          @unique
+  description           String          @default("")
+  discountPercent       Decimal         @db.Decimal(5, 2)
+  monthlyPrice          Decimal?        @db.Decimal(10, 2)
+  yearlyPrice           Decimal?        @db.Decimal(10, 2)
+  stripeMonthlyPriceId  String?         @unique
+  stripeYearlyPriceId   String?         @unique
+  isActive              Boolean         @default(true)
+  sortOrder             Int             @default(0)
+
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+// ======================================================
+// STRIPE SUBSCRIPTION
+// Retains the existing working Stripe subscription fields.
+// Stripe webhooks should remain the source of truth for
+// status and currentPeriodEnd. One current subscription per
+// user, matching the existing schema's one-to-one design.
 // ======================================================
 
 model Subscription {
-  id                   String    @id @default(uuid())
-  userId               String    @unique
-  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stripeCustomerId     String?   @unique
-  stripeSubscriptionId String    @unique
+  id                   String           @id @default(uuid())
+  userId               String           @unique
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  stripeCustomerId     String?          @unique
+  stripeSubscriptionId String           @unique
+  membershipPlanId     String?
+  membershipPlan       MembershipPlan?  @relation(fields: [membershipPlanId], references: [id], onDelete: SetNull)
+
+  // Keep `plan` for compatibility with existing application code.
   plan                 String?
   status               String
+  membershipStatus     MembershipStatus @default(INCOMPLETE)
+  billingInterval      BillingInterval?
   currentPeriodEnd     DateTime?
-  cancelAtPeriodEnd    Boolean   @default(false)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  cancelAtPeriodEnd    Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
+  @@index([membershipStatus, currentPeriodEnd])
+  @@index([membershipPlanId])
+}
+
+// ======================================================
+// BOOKINGS
+// Customers book a game directly, without a station record.
+// startAt/endAt are timestamps; validate opening hours,
+// minimum/maximum duration, and overlapping bookings in the
+// backend using a transaction. `capacity` allows a game to
+// have more than one simultaneous booking when appropriate.
+// ======================================================
+
+model Booking {
+  id                  String               @id @default(uuid())
+  bookingNumber       String               @unique @default(cuid())
+
+  userId              String
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  gameId              String
+  game                Game                 @relation(fields: [gameId], references: [id], onDelete: Restrict)
+
+  startAt             DateTime
+  endAt               DateTime
+  durationMinutes     Int
+
+  // Price snapshot: these values do not change if admin later
+  // edits the game's current price or membership discount.
+  baseAmount          Decimal              @db.Decimal(10, 2)
+  discountPercent     Decimal              @default(0) @db.Decimal(5, 2)
+  discountAmount      Decimal              @default(0) @db.Decimal(10, 2)
+  totalAmount         Decimal              @db.Decimal(10, 2)
+  currency            String               @default("INR")
+
+  membershipPlanName  String?
+  membershipId        String?
+
+  status              BookingStatus        @default(PENDING)
+  paymentMethod       BookingPaymentMethod
+  paymentStatus       PaymentStatus        @default(PENDING)
+  customerNote        String?
+  adminNote           String?
+  cancelledAt         DateTime?
+  cancellationReason  String?
+  confirmedAt         DateTime?
+  completedAt         DateTime?
+
+  payments            Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, startAt])
+  @@index([gameId, startAt, endAt])
+  @@index([status, startAt])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+// ======================================================
+// PAYMENTS
+// Records one-time online booking payments and, if desired,
+// membership-related payment events. Recurring membership
+// state itself is represented by Subscription and synced
+// through verified Stripe webhooks.
+// ======================================================
+
+model Payment {
+  id                      String        @id @default(uuid())
+  userId                  String
+  user                    User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  bookingId               String?
+  booking                 Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  type                    PaymentType
+  status                  PaymentStatus @default(PENDING)
+  amount                  Decimal       @db.Decimal(10, 2)
+  currency                String        @default("INR")
+
+  stripeCheckoutSessionId String?       @unique
+  stripePaymentIntentId   String?       @unique
+  stripeInvoiceId         String?       @unique
+  failureCode             String?
+  failureMessage          String?
+  paidAt                  DateTime?
+  refundedAt              DateTime?
+  metadata                Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([bookingId])
+  @@index([type, status])
 }
 
 // ======================================================
 // OBJECT STORAGE
-// File blobs (e.g. avatars) stored in the database and
-// served via /api/v1/storage/:id.
+// Preserves the existing DB-backed file storage model.
 // ======================================================
 
 model StoredFile {

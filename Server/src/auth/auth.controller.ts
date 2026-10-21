@@ -38,7 +38,6 @@ export class AuthController {
   async login(@Body() dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
-      include: { roleRef: true },
     });
 
     if (
@@ -61,8 +60,7 @@ export class AuthController {
   }
 
   /**
-   * Public self-signup. A roleId may be supplied — it must reference an
-   * active role; without one the user gets the fixed "USER" role.
+   * Public self-signup — new accounts are always CUSTOMERs.
    * Auto-logs the user in (a JWT is returned with the response).
    */
   @Post('register')
@@ -80,33 +78,15 @@ export class AuthController {
       );
     }
 
-    let role: { id: string; name: string } | null = null;
-    if (dto.roleId) {
-      role = await this.prisma.role.findFirst({
-        where: { id: dto.roleId, isActive: true },
-        select: { id: true, name: true },
-      });
-      if (!role) {
-        throw new ApiException(
-          400,
-          'INVALID_ROLE',
-          'Selected role is not available for self-signup',
-        );
-      }
-    }
-
     const user = await this.prisma.user.create({
       data: {
         name: dto.name,
         email: dto.email,
         passwordHash: await bcrypt.hash(dto.password, 12),
-        role: role?.name ?? 'USER',
-        roleId: role?.id ?? null,
         image: dto.image,
         mustChangePassword: false,
         isActive: true,
       },
-      include: { roleRef: true },
     });
 
     const token = await this.auth.issueToken(user);
@@ -114,17 +94,6 @@ export class AuthController {
     return {
       data: { user: await this.auth.safeUser(user), token },
     };
-  }
-
-  /** Active roles offered for selection on the self-signup page. */
-  @Get('signup-roles')
-  async signupRoles() {
-    const roles = await this.prisma.role.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, description: true },
-      orderBy: { name: 'asc' },
-    });
-    return { data: roles };
   }
 
   /**

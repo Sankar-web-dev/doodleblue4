@@ -85,8 +85,8 @@ export function UserDetailsSheet({ user, onClose }: UserDetailsSheetProps) {
                   <dd className="font-mono text-xs">{user.id}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Role ID</dt>
-                  <dd className="font-mono text-xs">{user.roleId ?? "System (None)"}</dd>
+                  <dt className="text-muted-foreground">Role</dt>
+                  <dd className="font-mono text-xs">{user.role}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Created</dt>

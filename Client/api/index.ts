@@ -6,6 +6,5 @@
  */
 
 export * from "./auth.api";
-export * from "./roles.api";
 export * from "./subscriptions.api";
 export * from "./users.api";

@@ -8,7 +8,6 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -16,13 +15,9 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiException } from '../common/api-error.js';
 import { avatarMulterOptions } from '../common/avatar-upload.js';
-import {
-  AuthGuard,
-  type AuthenticatedRequest,
-} from '../auth/auth.guard.js';
+import { AuthGuard } from '../auth/auth.guard.js';
+import { AdminGuard } from '../auth/admin.guard.js';
 import { RequirePasswordChangedGuard } from '../auth/require-password-changed.guard.js';
-import { PermissionsGuard } from '../auth/permissions.guard.js';
-import { RequirePermission } from '../auth/permissions.decorator.js';
 import { UsersService } from './users.service.js';
 import {
   CreateUserDto,
@@ -32,9 +27,9 @@ import {
 
 import { StorageService } from '../storage/storage.service.js';
 
-// User-account provisioning — SUPER_ADMIN (or any role granted users:*).
+// User-account provisioning — SUPER_ADMIN only.
 @Controller('users')
-@UseGuards(AuthGuard, RequirePasswordChangedGuard, PermissionsGuard)
+@UseGuards(AuthGuard, RequirePasswordChangedGuard, AdminGuard)
 export class UsersController {
   constructor(
     private readonly users: UsersService,
@@ -42,13 +37,11 @@ export class UsersController {
   ) {}
 
   @Post()
-  @RequirePermission('users', 'create')
   createUser(@Body() dto: CreateUserDto) {
     return this.users.createUser(dto).then((data) => ({ data }));
   }
 
   @Post('upload-avatar')
-  @RequirePermission('users', 'create')
   @UseInterceptors(FileInterceptor('avatar', avatarMulterOptions))
   async uploadAvatar(@UploadedFile() file?: Express.Multer.File) {
     if (!file) {
@@ -70,49 +63,32 @@ export class UsersController {
 
   // Picker list — must precede :id so "options" isn't parsed as a uuid.
   @Get('options')
-  @RequirePermission('users', 'read')
-  async listUserOptions(@Req() req: AuthenticatedRequest) {
-    return { data: await this.users.listUserOptions(req.user) };
+  async listUserOptions() {
+    return { data: await this.users.listUserOptions() };
   }
 
   @Get()
-  @RequirePermission('users', 'read')
-  async listUsers(
-    @Query() query: ListUsersQueryDto,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    const { data, meta } = await this.users.listUsers(query, req.user);
+  async listUsers(@Query() query: ListUsersQueryDto) {
+    const { data, meta } = await this.users.listUsers(query);
     return { data, meta };
   }
 
   @Get(':id')
-  @RequirePermission('users', 'read')
-  async getUser(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    return { data: { user: await this.users.getUserById(id, req.user) } };
+  async getUser(@Param('id', ParseUUIDPipe) id: string) {
+    return { data: { user: await this.users.getUserById(id) } };
   }
 
   @Patch(':id')
-  @RequirePermission('users', 'update')
   async updateUser(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserDto,
-    @Req() req: AuthenticatedRequest,
   ) {
-    return {
-      data: { user: await this.users.updateUser(id, dto, req.user) },
-    };
+    return { data: { user: await this.users.updateUser(id, dto) } };
   }
 
   @Delete(':id')
-  @RequirePermission('users', 'delete')
-  async deleteUser(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    await this.users.deleteUser(id, req.user);
+  async deleteUser(@Param('id', ParseUUIDPipe) id: string) {
+    await this.users.deleteUser(id);
     return { data: { message: 'User deleted' } };
   }
 }

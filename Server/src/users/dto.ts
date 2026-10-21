@@ -2,12 +2,13 @@ import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEmail,
+  IsEnum,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { UserRole } from '../generated/prisma/enums.js';
 import {
   PaginationQueryDto,
   normalizeEmail,
@@ -32,9 +33,10 @@ export class CreateUserDto {
   @MaxLength(128)
   password?: string;
 
-  /** Must reference an active Role row. */
-  @IsUUID()
-  roleId!: string;
+  /** Defaults to CUSTOMER when omitted. */
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
 
   /** Optional profile image URL or relative path. */
   @IsOptional()
@@ -64,8 +66,8 @@ export class UpdateUserDto {
   password?: string;
 
   @IsOptional()
-  @IsUUID()
-  roleId?: string;
+  @IsEnum(UserRole)
+  role?: UserRole;
 
   @IsOptional()
   @IsString()

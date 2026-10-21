@@ -1,31 +1,24 @@
 import { api } from "@/lib/api";
 
-export interface RolePermission {
-  resource: string;
-  actions: ("create" | "read" | "update" | "delete")[];
-}
+export type UserRole = "SUPER_ADMIN" | "CUSTOMER";
 
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  /** Role name string — "SUPER_ADMIN" for the system account, role name otherwise. */
-  role: string;
-  roleId?: string;
+  /** "SUPER_ADMIN" is the shop owner/admin; everyone else is a CUSTOMER. */
+  role: UserRole;
   /** Optional profile image URL. */
   image?: string;
   mustChangePassword: boolean;
   isActive: boolean;
-  /** Granular permissions from the user's role. Empty for SUPER_ADMIN (implicit full access). */
-  permissions: RolePermission[];
 }
 
-/** Display label for common known roles. Falls back to the raw name for custom roles. */
+/** Display label for the fixed role set. */
 export function getRoleLabel(role: string): string {
   const labels: Record<string, string> = {
     SUPER_ADMIN: "Super Admin",
-    ADMIN: "Admin",
-    USER: "User",
+    CUSTOMER: "Customer",
   };
   return labels[role] ?? role;
 }
@@ -41,21 +34,14 @@ export const authApi = {
     name: string,
     email: string,
     password: string,
-    opts?: { roleId?: string; image?: string }
+    opts?: { image?: string }
   ) =>
     api.post<{ user: AuthUser; token: string }>("/api/v1/auth/register", {
       name,
       email,
       password,
-      roleId: opts?.roleId,
       image: opts?.image,
     }),
-
-  /** Public roles flagged for self-signup. */
-  signupRoles: () =>
-    api.get<{ id: string; name: string; description: string }[]>(
-      "/api/v1/auth/signup-roles"
-    ),
 
   /** Public avatar upload for the signup form (pre-auth). */
   uploadSignupAvatar: (file: File) => {

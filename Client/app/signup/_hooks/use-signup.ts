@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { authService, AUTH_ME_KEY } from "@/api/auth.api";
@@ -19,23 +19,13 @@ export function useSignup() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [roleId, setRoleId] = useState("");
   const [image, setImage] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Roles flagged for self-signup — empty list falls back to the fixed USER role.
-  const { data: signupRoles, isPending: rolesPending } = useQuery({
-    queryKey: ["auth", "signup-roles"],
-    queryFn: () => authService.signupRoles(),
-    staleTime: 60_000,
-  });
-  const roles = useMemo(() => signupRoles ?? [], [signupRoles]);
-
   const signupMutation = useMutation({
     mutationFn: () =>
       authService.signUp(name.trim(), email.trim(), password, {
-        roleId: roleId || undefined,
         image: image || undefined,
       }),
     onSuccess: ({ user, token }) => {
@@ -100,10 +90,6 @@ export function useSignup() {
       setFormError("Fill in all fields.");
       return;
     }
-    if (!roleId && roles.length > 0) {
-      setFormError("Please select a role. Role selection is mandatory.");
-      return;
-    }
     if (password.length < 10) {
       setFormError("Password must be at least 10 characters.");
       return;
@@ -127,14 +113,10 @@ export function useSignup() {
     setConfirm,
     showPassword,
     setShowPassword,
-    roleId,
-    setRoleId,
     image,
     setImage,
     isUploadingImage,
     formError,
-    roles,
-    rolesPending,
     fileInputRef,
     isBusy,
     isSubmitting: signupMutation.isPending,

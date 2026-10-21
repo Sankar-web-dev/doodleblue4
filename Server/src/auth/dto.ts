@@ -4,7 +4,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -36,11 +35,6 @@ export class RegisterDto {
   @MinLength(10)
   @MaxLength(128)
   password!: string;
-
-  /** Optional — must reference an active role. */
-  @IsOptional()
-  @IsUUID()
-  roleId?: string;
 
   /** Optional profile image URL (e.g. from /auth/upload-avatar). */
   @IsOptional()

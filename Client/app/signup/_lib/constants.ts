@@ -13,7 +13,7 @@ export const FEATURES = [
   },
   {
     icon: UserCheck,
-    title: "Grow your access",
-    description: "Admins can promote your account to richer roles later.",
+    title: "Book & subscribe",
+    description: "Reserve games and unlock member discounts instantly.",
   },
 ];

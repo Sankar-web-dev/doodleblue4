@@ -1,11 +1,11 @@
 import { api, PaginationMeta } from "@/lib/api";
+import type { UserRole } from "./auth.api";
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
-  roleId?: string;
+  role: UserRole;
   image?: string;
   mustChangePassword: boolean;
   isActive: boolean;
@@ -17,7 +17,8 @@ export interface CreateUserInput {
   email: string;
   /** Omit to have the server generate one and email it to the user. */
   password?: string;
-  roleId: string;
+  /** Defaults to CUSTOMER when omitted. */
+  role?: UserRole;
   image?: string;
 }
 
@@ -25,7 +26,7 @@ export interface UpdateUserInput {
   name?: string;
   email?: string;
   password?: string;
-  roleId?: string;
+  role?: UserRole;
   image?: string;
   isActive?: boolean;
 }

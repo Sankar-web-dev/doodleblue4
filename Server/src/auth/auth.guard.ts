@@ -4,21 +4,20 @@ import {
   Injectable,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import type { UserModel, RoleModel } from '../generated/prisma/models.js';
+import type { UserModel } from '../generated/prisma/models.js';
 import { ApiException } from '../common/api-error.js';
 import { AuthService } from './auth.service.js';
 
 export interface AuthenticatedRequest extends Request {
   user: UserModel;
-  currentRole: RoleModel | null;
   /** The raw Bearer token presented with this request. */
   accessToken: string;
 }
 
 /**
  * JWT Bearer authentication. Reads the `Authorization: Bearer <token>`
- * header, verifies the token and attaches `req.user` + `req.currentRole`
- * for downstream guards and handlers.
+ * header, verifies the token and attaches `req.user` for downstream guards
+ * and handlers.
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -42,10 +41,7 @@ export class AuthGuard implements CanActivate {
       );
     }
 
-    const user = await this.auth.resolveTokenUser(token);
-
-    request.user = user;
-    request.currentRole = user.roleRef ?? null;
+    request.user = await this.auth.resolveTokenUser(token);
     request.accessToken = token;
 
     return true;

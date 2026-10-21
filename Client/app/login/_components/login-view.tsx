@@ -17,7 +17,7 @@ export function LoginView() {
             <span className="text-[oklch(0.78_0.14_262)]">with confidence.</span>
           </>
         }
-        subtitle="Sign in to your admin console to manage users, roles, and permissions."
+        subtitle="Sign in to manage bookings, games, and memberships."
         features={FEATURES}
       />
 

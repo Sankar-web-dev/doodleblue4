@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import GenericTable from "@/components/ui/generic-table";
 
 import { useAuthUser } from "@/lib/use-auth-user";
-import { usePermissions } from "@/lib/permissions";
+import { isAdmin } from "@/lib/permissions";
 import { ForbiddenState } from "../../_components/forbidden-state";
 import { useUsers } from "../_hooks/use-users";
 import { UserDetailsSheet } from "./user-details-sheet";
@@ -35,19 +35,12 @@ export function UsersView() {
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
 
   const { user: currentUser } = useAuthUser();
-  const { can } = usePermissions(currentUser);
-  const isSuperAdmin = currentUser?.role === "SUPER_ADMIN";
+  const admin = isAdmin(currentUser);
 
   const { data, isPending, error, refetch } = useUsers();
-  const rawUsers = Array.isArray(data?.data)
+  const users = Array.isArray(data?.data)
     ? data.data
     : (data?.data as unknown as { users?: User[] })?.users ?? [];
-
-  // Super admin details should never be visible to other roles
-  const users = useMemo(
-    () => (isSuperAdmin ? rawUsers : rawUsers.filter((u) => u.role !== "SUPER_ADMIN")),
-    [rawUsers, isSuperAdmin]
-  );
 
   const columns = useMemo<ColumnDef<User, unknown>[]>(
     () => [
@@ -135,43 +128,39 @@ export function UsersView() {
               <Eye className="h-3.5 w-3.5 mr-1.5" />
               View details
             </Button>
-            {can("users", "update") && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 text-xs"
-                onClick={() => router.push(`/users/${row.original.id}/edit`)}
-              >
-                <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                Edit
-              </Button>
-            )}
-            {can("users", "delete") && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => setDeleteUser(row.original)}
-                disabled={row.original.role === "SUPER_ADMIN"}
-                title={
-                  row.original.role === "SUPER_ADMIN"
-                    ? "SUPER_ADMIN cannot be deleted"
-                    : undefined
-                }
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 text-xs"
+              onClick={() => router.push(`/users/${row.original.id}/edit`)}
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1.5" />
+              Edit
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setDeleteUser(row.original)}
+              disabled={row.original.role === "SUPER_ADMIN"}
+              title={
+                row.original.role === "SUPER_ADMIN"
+                  ? "SUPER_ADMIN cannot be deleted"
+                  : undefined
+              }
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
           </div>
         ),
       },
     ],
-    [router, can]
+    [router]
   );
 
-  if (currentUser && !can("users", "read")) {
+  if (currentUser && !admin) {
     return (
-      <ForbiddenState message="You don't have permission to view users." />
+      <ForbiddenState message="Administrator access is required to view users." />
     );
   }
 

@@ -4,7 +4,7 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { AuthGuard } from './auth.guard.js';
-import { PermissionsGuard } from './permissions.guard.js';
+import { AdminGuard } from './admin.guard.js';
 import { RequirePasswordChangedGuard } from './require-password-changed.guard.js';
 
 import { StorageModule } from '../storage/storage.module.js';
@@ -30,9 +30,14 @@ import { StorageModule } from '../storage/storage.module.js';
   providers: [
     AuthService,
     AuthGuard,
-    PermissionsGuard,
+    AdminGuard,
     RequirePasswordChangedGuard,
   ],
-  exports: [AuthService, AuthGuard, PermissionsGuard, RequirePasswordChangedGuard],
+  exports: [
+    AuthService,
+    AuthGuard,
+    AdminGuard,
+    RequirePasswordChangedGuard,
+  ],
 })
 export class AuthModule {}

@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 
 import { useAuthUser } from "@/lib/use-auth-user";
-import { usePermissions } from "@/lib/permissions";
+import { isAdmin } from "@/lib/permissions";
 import { ForbiddenState } from "../../../_components/forbidden-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,11 +18,10 @@ export default function EditUserPage() {
   const user = data?.user;
 
   const { user: currentUser, isPending: authPending } = useAuthUser();
-  const { can } = usePermissions(currentUser);
 
-  if (!authPending && !can("users", "update")) {
+  if (!authPending && !isAdmin(currentUser)) {
     return (
-      <ForbiddenState message="You don't have permission to edit users." />
+      <ForbiddenState message="Administrator access is required to edit users." />
     );
   }
 

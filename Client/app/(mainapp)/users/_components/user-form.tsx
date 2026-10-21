@@ -4,10 +4,11 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, KeyRound, Eye, EyeOff, Mail, Upload,X } from "lucide-react";
+import { Loader2, KeyRound, Eye, EyeOff, Mail, Upload, X } from "lucide-react";
 
 import { USERS_LIST_KEY, usersApi, type User } from "@/api/users.api";
-import { useRoles } from "../../roles/_hooks/use-roles";
+import type { UserRole } from "@/api/auth.api";
+import { getRoleLabel } from "@/api/auth.api";
 import { createUserAction, updateUserAction } from "../_actions/users.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,12 +21,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  RESOURCE_LABELS,
-  ACTION_LABELS,
-  type Resource,
-  type Action,
-} from "@/lib/permissions";
+
+const ROLE_OPTIONS: { value: UserRole; label: string; hint: string }[] = [
+  {
+    value: "CUSTOMER",
+    label: "Customer",
+    hint: "Standard account — can browse games, book sessions and subscribe.",
+  },
+  {
+    value: "SUPER_ADMIN",
+    label: "Super Admin",
+    hint: "Full access — manage users, games, bookings and billing.",
+  },
+];
 
 interface UserFormProps {
   user?: User;
@@ -37,20 +45,13 @@ export function UserForm({ user }: UserFormProps) {
   const isEdit = !!user;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: rolesData, isLoading: rolesLoading } = useRoles();
-  const roles = rolesData?.data ?? [];
-  // For selecting a new role, only active roles are shown.
-  // But if the edited user already has an assigned role (even if inactive/legacy),
-  // include it so that it displays in the selector.
-  const activeRoles = roles.filter(
-    (r) => r.isActive || (user && (r.id === user.roleId || r.name.toLowerCase() === user.role.toLowerCase()))
-  );
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [roleId, setRoleId] = useState(user?.roleId ?? "");
+  const [role, setRole] = useState<UserRole>(user?.role ?? "CUSTOMER");
   const [image, setImage] = useState(user?.image ?? "");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isActive, setIsActive] = useState(user?.isActive ?? true);
@@ -65,29 +66,7 @@ export function UserForm({ user }: UserFormProps) {
       setEmail(user.email ?? "");
       setImage(user.image ?? "");
       setIsActive(user.isActive ?? true);
-      if (user.roleId) {
-        setRoleId(user.roleId);
-      }
-    }
-  }
-
-  // When roles load, if user has roleId or role name, ensure roleId is matched
-  // accurately. `roles` is a fresh [] until the query resolves, so the length
-  // check must precede the identity compare to avoid a render loop.
-  const [syncedRoles, setSyncedRoles] = useState<typeof roles | null>(null);
-  if (roles.length > 0 && (roles !== syncedRoles || user !== prevUser)) {
-    setSyncedRoles(roles);
-    if (user) {
-      if (user.roleId && roles.some((r) => r.id === user.roleId)) {
-        setRoleId(user.roleId);
-      } else if (user.role) {
-        const matched = roles.find(
-          (r) => r.name.toLowerCase() === user.role.toLowerCase()
-        );
-        if (matched) {
-          setRoleId(matched.id);
-        }
-      }
+      setRole(user.role ?? "CUSTOMER");
     }
   }
 
@@ -101,8 +80,7 @@ export function UserForm({ user }: UserFormProps) {
     setShowPassword(true);
   }
 
-  const selectedRole = roles.find((r) => r.id === roleId);
-  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  const selectedRoleHint = ROLE_OPTIONS.find((r) => r.value === role)?.hint;
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -110,7 +88,7 @@ export function UserForm({ user }: UserFormProps) {
         name,
         email,
         // No password — the server generates one and emails it to the user.
-        roleId,
+        role,
         image: image || undefined,
       }),
     onSuccess: (data) => {
@@ -138,7 +116,7 @@ export function UserForm({ user }: UserFormProps) {
         name,
         email,
         ...(password ? { password } : {}),
-        roleId: isSuperAdmin ? undefined : roleId,
+        role: isSuperAdmin ? undefined : role,
         image,
         isActive,
       }),
@@ -197,20 +175,9 @@ export function UserForm({ user }: UserFormProps) {
       return;
     }
 
-    if (!isEdit) {
-      if (!roleId) {
-        setError("Please select a role.");
-        return;
-      }
-    } else {
-      if (password && password.length < 10) {
-        setError("New password must be at least 10 characters.");
-        return;
-      }
-      if (!isSuperAdmin && !roleId) {
-        setError("Please select a role.");
-        return;
-      }
+    if (isEdit && password && password.length < 10) {
+      setError("New password must be at least 10 characters.");
+      return;
     }
 
     if (isEdit) {
@@ -310,7 +277,7 @@ export function UserForm({ user }: UserFormProps) {
 
       {/* Role Selection */}
       <div className="space-y-2">
-        <Label htmlFor="role-select">Assigned Role</Label>
+        <Label htmlFor="role-select">Role</Label>
         {isSuperAdmin ? (
           <div className="flex h-11 items-center rounded-lg border border-border/70 bg-muted/30 px-3.5 text-sm">
             <span className="font-medium text-foreground">SUPER_ADMIN</span>
@@ -319,99 +286,34 @@ export function UserForm({ user }: UserFormProps) {
             </Badge>
           </div>
         ) : (
-          <Select
-            value={roleId}
-            onValueChange={(val) => {
-              setRoleId(val);
-              setError(null);
-            }}
-            disabled={rolesLoading || isPending}
-          >
-            <SelectTrigger id="role-select" className="h-11 rounded-lg w-full">
-              <SelectValue placeholder={rolesLoading ? "Loading roles..." : "Choose a role"}>
-                {selectedRole ? (
-                  <span className="flex items-center gap-2">
-                    <span>{selectedRole.name}</span>
-                    {selectedRole.isSystem && (
-                      <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-                        System
-                      </Badge>
-                    )}
-                  </span>
-                ) : user?.role ? (
-                  <span>{user.role}</span>
-                ) : undefined}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {activeRoles.map((r) => (
-                <SelectItem key={r.id} value={r.id}>
-                  <div className="flex items-center gap-2">
-                    <span>{r.name}</span>
-                    {r.isSystem && (
-                      <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-                        System
-                      </Badge>
-                    )}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <>
+            <Select
+              value={role}
+              onValueChange={(val) => {
+                setRole(val as UserRole);
+                setError(null);
+              }}
+              disabled={isPending}
+            >
+              <SelectTrigger id="role-select" className="h-11 rounded-lg w-full">
+                <SelectValue placeholder="Choose a role">
+                  {getRoleLabel(role)}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {ROLE_OPTIONS.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedRoleHint && (
+              <p className="text-xs text-muted-foreground">{selectedRoleHint}</p>
+            )}
+          </>
         )}
       </div>
-
-      {/* Role preview: shows permissions granted by selected roleId */}
-      {selectedRole && (
-        <div className="rounded-lg border border-border/70 bg-muted/30 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-primary" />
-              <span className="text-xs font-semibold text-foreground">
-                Role permissions preview ({selectedRole.name})
-              </span>
-            </div>
-            <span className="text-[11px] font-mono text-muted-foreground">
-              ID: {selectedRole.id}
-            </span>
-          </div>
-
-          {selectedRole.permissions.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">
-              No explicit permissions configured for this role.
-            </p>
-          ) : (
-            <div className="max-h-48 overflow-y-auto rounded-lg border border-border/50 divide-y divide-border/40">
-              {selectedRole.permissions.map((perm) => (
-                <div
-                  key={perm.resource}
-                  className="flex items-center justify-between px-3 py-2 text-xs bg-background/50"
-                >
-                  <span className="font-medium">
-                    {RESOURCE_LABELS[perm.resource as Resource] ?? perm.resource}
-                  </span>
-                  <div className="flex gap-1">
-                    {(["create", "read", "update", "delete"] as Action[]).map(
-                      (action) => (
-                        <span
-                          key={action}
-                          className={`rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${
-                            perm.actions.includes(action)
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted/50 text-muted-foreground/30"
-                          }`}
-                        >
-                          {ACTION_LABELS[action]}
-                        </span>
-                      )
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Active Status in Edit mode */}
       {isEdit && (

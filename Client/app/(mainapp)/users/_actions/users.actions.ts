@@ -9,7 +9,7 @@ export async function createUserAction(input: CreateUserInput) {
     name: input.name.trim(),
     email: input.email.trim().toLowerCase(),
     password: input.password,
-    roleId: input.roleId,
+    role: input.role,
     ...(input.image?.trim() ? { image: input.image.trim() } : {}),
   });
 }
@@ -19,7 +19,7 @@ export async function updateUserAction(id: string, input: UpdateUserInput) {
     ...(input.name !== undefined ? { name: input.name.trim() } : {}),
     ...(input.email !== undefined ? { email: input.email.trim().toLowerCase() } : {}),
     ...(input.password ? { password: input.password } : {}),
-    ...(input.roleId !== undefined ? { roleId: input.roleId } : {}),
+    ...(input.role !== undefined ? { role: input.role } : {}),
     ...(input.image !== undefined ? { image: input.image.trim() || undefined } : {}),
     ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
   });

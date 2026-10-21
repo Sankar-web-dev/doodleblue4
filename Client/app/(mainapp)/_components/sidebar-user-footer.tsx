@@ -15,8 +15,9 @@ export function SidebarUserFooter({ user: initialUser }: { user: AuthUser }) {
   const RoleIcon = isSuper ? Crown : UserCog;
   const [imgFailed, setImgFailed] = useState(false);
 
-  // Fetch the full/fresh user data using the useUser hook
-  const { data: userDetail } = useUser(initialUser.id);
+  // Fetch the full/fresh user data using the useUser hook — the users
+  // endpoint is admin-only, so customers skip it and keep /auth/me data.
+  const { data: userDetail } = useUser(isSuper ? initialUser.id : "");
   const user = userDetail?.user ?? initialUser;
 
   // Normalize image url (handles relative paths like /uploads/...)

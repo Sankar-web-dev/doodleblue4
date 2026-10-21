@@ -19,7 +19,6 @@ function safeUser(user: UserModel) {
     name: user.name,
     email: user.email,
     role: user.role,
-    roleId: user.roleId ?? undefined,
     image: user.image ?? undefined,
     mustChangePassword: user.mustChangePassword,
     isActive: user.isActive,
@@ -42,17 +41,6 @@ export class UsersService {
   // ── createUser ────────────────────────────────────────────────────────────
 
   async createUser(input: CreateUserDto) {
-    const role = await this.prisma.role.findUnique({
-      where: { id: input.roleId },
-    });
-    if (!role || !role.isActive) {
-      throw new ApiException(
-        400,
-        'INVALID_ROLE',
-        'roleId must reference an active role',
-      );
-    }
-
     const taken = await this.prisma.user.findUnique({
       where: { email: input.email },
       select: { id: true },
@@ -67,8 +55,6 @@ export class UsersService {
 
     // When no password is supplied, generate a secure random one — it is
     // emailed to the user and must be changed on first login.
-    // When no password is supplied, generate a secure random one — it is
-    // emailed to the user and must be changed on first login.
     const tempPassword = input.password ?? generateTempPassword();
     const passwordWasGenerated = !input.password;
 
@@ -77,10 +63,7 @@ export class UsersService {
         name: input.name,
         email: input.email,
         passwordHash: await bcrypt.hash(tempPassword, 12),
-        // The stored role name mirrors the Role row — roleId is the
-        // authoritative link used to resolve permissions.
-        role: role.name,
-        roleId: role.id,
+        role: input.role ?? 'CUSTOMER',
         image: input.image,
         mustChangePassword: true,
         isActive: true,
@@ -112,30 +95,17 @@ export class UsersService {
 
   // ── listUsers ─────────────────────────────────────────────────────────────
 
-  async listUsers(query: ListUsersQueryDto, currentUser?: UserModel) {
+  async listUsers(query: ListUsersQueryDto) {
     const { search, page, limit } = query;
 
-    const where: Record<string, unknown> = {};
-
-    // SUPER_ADMIN details are never shown to custom-role users
-    if (currentUser?.role !== SYSTEM_ROLE) {
-      where.role = { not: SYSTEM_ROLE };
-    }
-
-    if (search) {
-      const searchCondition = {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' as const } },
-          { email: { contains: search, mode: 'insensitive' as const } },
-        ],
-      };
-      if (where.role) {
-        where.AND = [{ role: where.role }, searchCondition];
-        delete where.role;
-      } else {
-        Object.assign(where, searchCondition);
-      }
-    }
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' as const } },
+            { email: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
 
     const { skip, take } = pageParams(query);
     const [total, docs] = await Promise.all([
@@ -153,19 +123,10 @@ export class UsersService {
 
   // ── listUserOptions ───────────────────────────────────────────────────────
 
-  /**
-   * Minimal picker data (id/name/email/role) for forms that need to reference
-   * users. Restricted to active users; SUPER_ADMIN accounts are never exposed
-   * to custom-role callers.
-   */
-  async listUserOptions(currentUser?: UserModel) {
-    const where: Record<string, unknown> = { isActive: true };
-    if (currentUser?.role !== SYSTEM_ROLE) {
-      where.role = { not: SYSTEM_ROLE };
-    }
-
-    const docs = await this.prisma.user.findMany({
-      where,
+  /** Minimal picker data (id/name/email/role) for forms referencing users. */
+  async listUserOptions() {
+    return this.prisma.user.findMany({
+      where: { isActive: true },
       select: {
         id: true,
         name: true,
@@ -175,42 +136,28 @@ export class UsersService {
       },
       orderBy: { name: 'asc' },
     });
-
-    return docs;
   }
 
   // ── getUserById ───────────────────────────────────────────────────────────
 
-  async getUserById(id: string, currentUser?: UserModel) {
+  async getUserById(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
-
-    // Non-super admins cannot view super admin details
-    if (!user || (user.role === SYSTEM_ROLE && currentUser?.role !== SYSTEM_ROLE)) {
+    if (!user) {
       throw new ApiException(404, 'USER_NOT_FOUND', 'User not found');
     }
-
     return safeUser(user);
   }
 
   // ── updateUser ────────────────────────────────────────────────────────────
 
-  async updateUser(
-    id: string,
-    input: UpdateUserDto,
-    currentUser?: UserModel,
-  ) {
+  async updateUser(id: string, input: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new ApiException(404, 'USER_NOT_FOUND', 'User not found');
     }
 
-    // Non-super admins cannot edit or view super admin details
-    if (user.role === SYSTEM_ROLE && currentUser?.role !== SYSTEM_ROLE) {
-      throw new ApiException(404, 'USER_NOT_FOUND', 'User not found');
-    }
-
     // Prevent demoting the hardcoded system account
-    if (user.role === SYSTEM_ROLE && input.roleId) {
+    if (user.role === SYSTEM_ROLE && input.role && input.role !== SYSTEM_ROLE) {
       throw new ApiException(
         400,
         'SUPER_ADMIN_ROLE_LOCKED',
@@ -236,33 +183,13 @@ export class UsersService {
     const data: Record<string, unknown> = {};
     if (input.name) data.name = input.name;
     if (input.email) data.email = input.email;
-
-    if (input.roleId) {
-      const role = await this.prisma.role.findUnique({
-        where: { id: input.roleId },
-      });
-      if (!role || !role.isActive) {
-        throw new ApiException(
-          400,
-          'INVALID_ROLE',
-          'roleId must reference an active role',
-        );
-      }
-      data.roleId = role.id;
-      data.role = role.name;
-    }
+    if (input.role) data.role = input.role;
+    if (input.image !== undefined) data.image = input.image;
+    if (input.isActive !== undefined) data.isActive = input.isActive;
 
     if (input.password) {
       data.passwordHash = await bcrypt.hash(input.password, 12);
       data.mustChangePassword = true;
-    }
-
-    if (input.image !== undefined) {
-      data.image = input.image;
-    }
-
-    if (input.isActive !== undefined) {
-      data.isActive = input.isActive;
     }
 
     const updated = await this.prisma.user.update({
@@ -275,7 +202,7 @@ export class UsersService {
 
   // ── deleteUser ────────────────────────────────────────────────────────────
 
-  async deleteUser(id: string, _currentUser?: UserModel) {
+  async deleteUser(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new ApiException(404, 'USER_NOT_FOUND', 'User not found');

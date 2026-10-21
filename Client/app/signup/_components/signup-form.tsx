@@ -5,18 +5,11 @@ import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, User } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 import { useSignup } from "../_hooks/use-signup";
 import { AvatarUpload } from "./avatar-upload";
 
-/** The signup form — fields, role picker, avatar upload, error + submit. */
+/** The signup form — fields, avatar upload, error + submit. */
 export function SignupForm() {
   const {
     name,
@@ -29,14 +22,10 @@ export function SignupForm() {
     setConfirm,
     showPassword,
     setShowPassword,
-    roleId,
-    setRoleId,
     image,
     setImage,
     isUploadingImage,
     formError,
-    roles,
-    rolesPending,
     fileInputRef,
     isBusy,
     isSubmitting,
@@ -83,30 +72,6 @@ export function SignupForm() {
           />
         </div>
       </div>
-
-      {roles.length > 0 && (
-        <div className="space-y-2">
-          <Label htmlFor="role" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Select Your Role <span className="text-primary font-bold">*</span>
-          </Label>
-          <Select
-            value={roleId}
-            onValueChange={setRoleId}
-            disabled={rolesPending || isBusy}
-          >
-            <SelectTrigger id="role" className="h-11 w-full rounded-lg">
-              <SelectValue placeholder="Choose a role (Mandatory)" />
-            </SelectTrigger>
-            <SelectContent>
-              {roles.map((r) => (
-                <SelectItem key={r.id} value={r.id}>
-                  {r.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
 
       <div className="space-y-2">
         <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
