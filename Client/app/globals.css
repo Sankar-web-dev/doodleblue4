@@ -1,0 +1,304 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Tailwind v3 opacity modifiers (bg-card/95 etc.) need channel values —
+       the config wraps these in oklch(var(--x) / <alpha-value>). */
+
+    /* BRAND PALETTE — "Slate & Indigo"
+       1. Primary: Indigo (L: 0.51, C: 0.20, H: 262)
+       2. Secondary: Cool slate neutral (L: 0.955, C: 0.006, H: 260)
+       3. Tertiary: Sky cyan (L: 0.68, C: 0.14, H: 215)
+    */
+    --primary: 0.5100 0.2000 262.0000;
+    --primary-foreground: 0.9850 0.0050 260.0000;
+
+    --secondary: 0.9550 0.0060 260.0000;
+    --secondary-foreground: 0.3000 0.0250 262.0000;
+
+    --tertiary: 0.6800 0.1400 215.0000;
+    --tertiary-foreground: 0.2000 0.0400 230.0000;
+
+    /* SURFACES & NEUTRALS (Light Mode) — cool slate-tinted paper */
+    --background: 0.9820 0.0030 260.0000;
+    --foreground: 0.2100 0.0250 262.0000;
+
+    --card: 0.9950 0.0020 260.0000;
+    --card-foreground: 0.2100 0.0250 262.0000;
+
+    --popover: 0.9950 0.0020 260.0000;
+    --popover-foreground: 0.2100 0.0250 262.0000;
+
+    --muted: 0.9550 0.0060 260.0000;
+    --muted-foreground: 0.5000 0.0200 260.0000;
+
+    --accent: 0.9400 0.0250 262.0000;
+    --accent-foreground: 0.3600 0.0800 262.0000;
+
+    --destructive: 0.5800 0.2200 27.0000;
+    --destructive-foreground: 0.9850 0.0100 30.0000;
+
+    --border: 0.9100 0.0080 260.0000;
+    --input: 0.8900 0.0100 260.0000;
+    --ring: 0.5100 0.2000 262.0000;
+
+    /* CHARTS — indigo, cyan, violet, slate, teal */
+    --chart-1: 0.5100 0.2000 262.0000;
+    --chart-2: 0.6800 0.1400 215.0000;
+    --chart-3: 0.6200 0.1900 300.0000;
+    --chart-4: 0.5500 0.0500 260.0000;
+    --chart-5: 0.7200 0.1100 190.0000;
+
+    --radius: 0.75rem;
+
+    /* SIDEBAR (Light Mode) — deep slate panel */
+    --sidebar-background: 0.1800 0.0200 262.0000;
+    --sidebar-foreground: 0.9000 0.0100 260.0000;
+    --sidebar-primary: 0.6500 0.1900 262.0000;
+    --sidebar-primary-foreground: 0.9800 0.0050 260.0000;
+    --sidebar-accent: 0.2600 0.0300 262.0000;
+    --sidebar-accent-foreground: 0.9600 0.0100 260.0000;
+    --sidebar-border: 0.2800 0.0250 262.0000;
+    --sidebar-ring: 0.6500 0.1900 262.0000;
+    --sidebar: 0.1800 0.0200 262.0000;
+
+    /* TYPOGRAPHY */
+    --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-display: var(--font-space-grotesk), var(--font-inter), system-ui, sans-serif;
+    --font-serif: Source Serif 4, Georgia, serif;
+    --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+
+    /* SHADOW TOKENS — warm red-tinted ink shadows */
+    --shadow-color: hsl(232 35% 12%);
+    --shadow-2xs: 0px 1px 2px 0px hsl(232 35% 12% / 0.04);
+    --shadow-xs: 0px 1px 3px 0px hsl(232 35% 12% / 0.06);
+    --shadow-sm: 0px 1px 3px 0px hsl(232 35% 12% / 0.07), 0px 1px 2px -1px hsl(232 35% 12% / 0.05);
+    --shadow: 0px 2px 4px 0px hsl(232 35% 12% / 0.06), 0px 2px 4px -2px hsl(232 35% 12% / 0.05);
+    --shadow-md: 0px 4px 6px -1px hsl(232 35% 12% / 0.08), 0px 2px 4px -2px hsl(232 35% 12% / 0.05);
+    --shadow-lg: 0px 10px 15px -3px hsl(232 35% 12% / 0.08), 0px 4px 6px -4px hsl(232 35% 12% / 0.04);
+    --shadow-xl: 0px 20px 25px -5px hsl(232 35% 12% / 0.09), 0px 8px 10px -6px hsl(232 35% 12% / 0.04);
+    --shadow-2xl: 0px 25px 50px -12px hsl(232 35% 12% / 0.18);
+
+    --tracking-normal: -0.011em;
+    --letter-spacing: -0.011em;
+    --spacing: 0.25rem;
+  }
+
+  .dark {
+    /* BRAND PALETTE (Dark Mode) — luminous indigo on deep slate-ink */
+    --primary: 0.6800 0.1700 262.0000;
+    --primary-foreground: 0.9850 0.0050 260.0000;
+
+    --secondary: 0.2650 0.0200 262.0000;
+    --secondary-foreground: 0.9300 0.0100 260.0000;
+
+    --tertiary: 0.7400 0.1250 215.0000;
+    --tertiary-foreground: 0.1800 0.0300 230.0000;
+
+    /* SURFACES & NEUTRALS (Dark Mode) */
+    --background: 0.1450 0.0150 262.0000;
+    --foreground: 0.9300 0.0080 260.0000;
+
+    --card: 0.1900 0.0180 262.0000;
+    --card-foreground: 0.9300 0.0080 260.0000;
+
+    --popover: 0.1900 0.0180 262.0000;
+    --popover-foreground: 0.9300 0.0080 260.0000;
+
+    --muted: 0.2450 0.0180 262.0000;
+    --muted-foreground: 0.6800 0.0200 260.0000;
+
+    --accent: 0.3050 0.0400 262.0000;
+    --accent-foreground: 0.9100 0.0400 260.0000;
+
+    --destructive: 0.6200 0.2200 27.0000;
+    --destructive-foreground: 0.9850 0.0100 30.0000;
+
+    --border: 0.2750 0.0200 262.0000;
+    --input: 0.2750 0.0200 262.0000;
+    --ring: 0.6800 0.1700 262.0000;
+
+    /* CHARTS (Dark Mode) */
+    --chart-1: 0.6800 0.1700 262.0000;
+    --chart-2: 0.7400 0.1250 215.0000;
+    --chart-3: 0.7000 0.1600 300.0000;
+    --chart-4: 0.6000 0.0500 260.0000;
+    --chart-5: 0.6600 0.1100 190.0000;
+
+    /* SIDEBAR (Dark Mode) — blends into background */
+    --sidebar-background: 0.1150 0.0120 262.0000;
+    --sidebar-foreground: 0.9000 0.0100 260.0000;
+    --sidebar-primary: 0.6800 0.1700 262.0000;
+    --sidebar-primary-foreground: 0.9850 0.0050 260.0000;
+    --sidebar-accent: 0.2350 0.0250 262.0000;
+    --sidebar-accent-foreground: 0.9600 0.0100 260.0000;
+    --sidebar-border: 0.2450 0.0200 262.0000;
+    --sidebar-ring: 0.6800 0.1700 262.0000;
+    --sidebar: 0.1150 0.0120 262.0000;
+
+    /* SHADOW TOKENS (Dark Mode) */
+    --shadow-color: hsl(0 0% 0%);
+    --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.25);
+    --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.30);
+    --shadow-sm: 0px 1px 3px 0px hsl(0 0% 0% / 0.35), 0px 1px 2px -1px hsl(0 0% 0% / 0.25);
+    --shadow: 0px 2px 4px 0px hsl(0 0% 0% / 0.35), 0px 2px 4px -2px hsl(0 0% 0% / 0.25);
+    --shadow-md: 0px 4px 6px -1px hsl(0 0% 0% / 0.40), 0px 2px 4px -2px hsl(0 0% 0% / 0.30);
+    --shadow-lg: 0px 10px 15px -3px hsl(0 0% 0% / 0.45), 0px 4px 6px -4px hsl(0 0% 0% / 0.35);
+    --shadow-xl: 0px 20px 25px -5px hsl(0 0% 0% / 0.50), 0px 8px 10px -6px hsl(0 0% 0% / 0.40);
+    --shadow-2xl: 0px 25px 50px -12px hsl(0 0% 0% / 0.65);
+  }
+
+  .theme {
+    --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-display: var(--font-space-grotesk), var(--font-inter), system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+    --font-serif: Source Serif 4, Georgia, serif;
+    --radius: 0.75rem;
+    --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
+    --tracking-tight: calc(var(--tracking-normal) - 0.025em);
+    --tracking-wide: calc(var(--tracking-normal) + 0.025em);
+    --tracking-wider: calc(var(--tracking-normal) + 0.05em);
+    --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+  }
+
+  body {
+    letter-spacing: var(--tracking-normal);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply overflow-x-hidden bg-background text-foreground;
+    font-family: var(--font-sans);
+    letter-spacing: var(--tracking-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* Ambient page backdrop — faint indigo/cyan/violet washes over the surface */
+.bg-ambient-mesh {
+  background-image:
+    radial-gradient(at 0% 0%, oklch(0.5100 0.2000 262.0000 / 0.06) 0px, transparent 48%),
+    radial-gradient(at 100% 0%, oklch(0.6800 0.1400 215.0000 / 0.08) 0px, transparent 45%),
+    radial-gradient(at 50% 100%, oklch(0.6200 0.1900 300.0000 / 0.05) 0px, transparent 48%);
+  background-attachment: fixed;
+}
+
+.dark .bg-ambient-mesh {
+  background-image:
+    radial-gradient(at 0% 0%, oklch(0.6800 0.1700 262.0000 / 0.10) 0px, transparent 48%),
+    radial-gradient(at 100% 0%, oklch(0.7400 0.1250 215.0000 / 0.08) 0px, transparent 45%),
+    radial-gradient(at 50% 100%, oklch(0.7000 0.1600 300.0000 / 0.06) 0px, transparent 48%);
+  background-attachment: fixed;
+}
+
+/* Dotted grid texture used on dark feature panels */
+.dot-grid {
+  background-image: radial-gradient(oklch(1 0 0 / 0.14) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.glass-card {
+  background: oklch(var(--card) / 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid oklch(var(--border) / 0.75);
+  box-shadow: 0 4px 12px -2px hsl(var(--shadow-color) / 0.05);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .glass-card {
+  background: oklch(var(--card) / 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid oklch(var(--border) / 0.70);
+  box-shadow: 0 4px 14px -2px hsl(0 0% 0% / 0.35);
+}
+
+.glass-card:hover {
+  border-color: oklch(var(--primary) / 0.5);
+  box-shadow: 0 10px 24px -4px oklch(var(--primary) / 0.14), 0 4px 8px -2px oklch(var(--primary) / 0.07);
+}
+
+.gradient-text {
+  background: linear-gradient(120deg, oklch(var(--primary)) 10%, oklch(var(--tertiary)) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Entrance animation for cards/sections */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Slow drift for decorative blobs */
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(4%, -3%, 0) scale(1.06); }
+}
+.animate-drift {
+  animation: drift 14s ease-in-out infinite;
+}
+
+/* Gentle vertical bob for hero illustrations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(var(--muted-foreground) / 0.25);
+  border-radius: 9999px;
+  transition: background 0.15s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(var(--muted-foreground) / 0.45);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

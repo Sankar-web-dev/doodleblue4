@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ======================================================
+// AUTHENTICATION AND RBAC
+// ======================================================
+
+model User {
+  id                 String  @id @default(uuid())
+  name               String
+  email              String  @unique
+  passwordHash       String
+  role               String
+  roleId             String?
+  image              String?
+  mustChangePassword Boolean @default(false)
+  isActive           Boolean @default(true)
+
+  roleRef Role? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
+  subscription  Subscription?
+  createdRoles  Role[]         @relation("RoleCreatedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model Role {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String  @default("")
+  permissions Json    @default("[]")
+  isSystem    Boolean @default(false)
+  isActive    Boolean @default(true)
+
+  createdById String?
+  createdBy   User?   @relation("RoleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ======================================================
+// BILLING (Stripe)
+// Mirrors the user's Stripe subscription — updated by the
+// /stripe/webhook receiver, one row per user.
+// ======================================================
+
+model Subscription {
+  id                   String    @id @default(uuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String    @unique
+  plan                 String?
+  status               String
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([status])
+}
+
+// ======================================================
+// OBJECT STORAGE
+// File blobs (e.g. avatars) stored in the database and
+// served via /api/v1/storage/:id.
+// ======================================================
+
+model StoredFile {
+  id        String   @id @default(uuid())
+  filename  String
+  mimeType  String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
