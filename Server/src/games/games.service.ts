@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RedisService } from '../redis/redis.service.js';
 import { ApiException } from '../common/api-error.js';
 import { listMeta, pageParams } from '../common/pagination.js';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -20,12 +21,29 @@ function slugify(name: string) {
 
 @Injectable()
 export class GamesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
+
+  /** Invalidate all cached public catalog entries after an admin write. */
+  private async invalidateCache() {
+    await this.redis.delPattern('cache:games:*');
+  }
 
   // ── public catalog ──────────────────────────────────────────────────────
 
-  /** Active games only — what customers browse and book. */
+  /** Active games only — what customers browse and book. Cached 2 min. */
   async listPublicGames(query: ListGamesQueryDto) {
+    const cacheKey = `cache:games:list:${RedisService.hash(
+      JSON.stringify(query),
+    ).slice(0, 16)}`;
+    return this.redis.remember(cacheKey, 120, () =>
+      this.queryPublicGames(query),
+    );
+  }
+
+  private async queryPublicGames(query: ListGamesQueryDto) {
     const where: Prisma.GameWhereInput = { status: 'ACTIVE' };
 
     if (query.category) {
@@ -55,15 +73,17 @@ export class GamesService {
     return { data, meta: listMeta(total, query.page, query.limit) };
   }
 
-  /** Distinct categories of active games (for filter chips). */
+  /** Distinct categories of active games (for filter chips). Cached 5 min. */
   async listCategories() {
-    const rows = await this.prisma.game.findMany({
-      where: { status: 'ACTIVE' },
-      select: { category: true },
-      distinct: ['category'],
-      orderBy: { category: 'asc' },
+    return this.redis.remember('cache:games:categories', 300, async () => {
+      const rows = await this.prisma.game.findMany({
+        where: { status: 'ACTIVE' },
+        select: { category: true },
+        distinct: ['category'],
+        orderBy: { category: 'asc' },
+      });
+      return rows.map((r) => r.category);
     });
-    return rows.map((r) => r.category);
   }
 
   /** A single active game by id or slug. */
@@ -143,7 +163,7 @@ export class GamesService {
       );
     }
 
-    return this.prisma.game.create({
+    const game = await this.prisma.game.create({
       data: {
         name: input.name,
         slug,
@@ -158,6 +178,8 @@ export class GamesService {
         sortOrder: input.sortOrder,
       },
     });
+    await this.invalidateCache();
+    return game;
   }
 
   async updateGame(id: string, input: UpdateGameDto) {
@@ -186,7 +208,12 @@ export class GamesService {
       }
     }
 
-    return this.prisma.game.update({ where: { id }, data: input });
+    const game = await this.prisma.game.update({
+      where: { id },
+      data: input,
+    });
+    await this.invalidateCache();
+    return game;
   }
 
   /**
@@ -197,6 +224,7 @@ export class GamesService {
     await this.getGameById(id);
     try {
       await this.prisma.game.delete({ where: { id } });
+      await this.invalidateCache();
     } catch {
       throw new ApiException(
         409,

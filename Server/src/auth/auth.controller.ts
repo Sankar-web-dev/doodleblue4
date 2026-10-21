@@ -122,12 +122,14 @@ export class AuthController {
   }
 
   /**
-   * JWTs are stateless — logout is a client-side token discard. The
-   * endpoint stays so callers can confirm their token is still valid.
+   * Logout — the token is added to a Redis blocklist for its remaining
+   * lifetime, so it stops working server-side immediately. The client
+   * also discards its copy.
    */
   @Post('logout')
   @UseGuards(AuthGuard)
-  async logout() {
+  async logout(@Req() req: AuthenticatedRequest) {
+    await this.auth.revokeToken(req.accessToken);
     return { data: { message: 'Logged out successfully' } };
   }
 
@@ -179,6 +181,9 @@ export class AuthController {
         mustChangePassword: false,
       },
     });
+
+    // The old token is revoked — password change ends the session.
+    await this.auth.revokeToken(req.accessToken);
 
     // Issue a fresh token after a credential change.
     const token = await this.auth.issueToken(user);

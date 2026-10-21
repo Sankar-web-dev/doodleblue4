@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RedisService } from '../redis/redis.service.js';
 import { ApiException } from '../common/api-error.js';
 import { listMeta, pageParams } from '../common/pagination.js';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -27,18 +28,27 @@ const PUBLIC_SELECT = {
 
 @Injectable()
 export class MembershipPlansService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
+
+  /** Drop cached public plan listings after an admin write. */
+  private async invalidateCache() {
+    await this.redis.delPattern('cache:plans:*');
+  }
 
   // ── public ──────────────────────────────────────────────────────────────
 
-  /** Active plans for the pricing page, ordered for display. */
+  /** Active plans for the pricing page, ordered. Cached 2 min. */
   async listPublicPlans() {
-    const data = await this.prisma.membershipPlan.findMany({
-      where: { isActive: true },
-      select: PUBLIC_SELECT,
-      orderBy: [{ sortOrder: 'asc' }, { monthlyPrice: 'asc' }],
-    });
-    return data;
+    return this.redis.remember('cache:plans:public', 120, () =>
+      this.prisma.membershipPlan.findMany({
+        where: { isActive: true },
+        select: PUBLIC_SELECT,
+        orderBy: [{ sortOrder: 'asc' }, { monthlyPrice: 'asc' }],
+      }),
+    );
   }
 
   async getPublicPlan(id: string) {
@@ -106,7 +116,9 @@ export class MembershipPlansService {
         'Set at least one of monthlyPrice or yearlyPrice',
       );
     }
-    return this.prisma.membershipPlan.create({ data: input });
+    const plan = await this.prisma.membershipPlan.create({ data: input });
+    await this.invalidateCache();
+    return plan;
   }
 
   async updatePlan(id: string, input: UpdateMembershipPlanDto) {
@@ -141,10 +153,12 @@ export class MembershipPlansService {
       );
     }
 
-    return this.prisma.membershipPlan.update({
+    const plan = await this.prisma.membershipPlan.update({
       where: { id },
       data: input,
     });
+    await this.invalidateCache();
+    return plan;
   }
 
   /**
@@ -154,5 +168,6 @@ export class MembershipPlansService {
   async deletePlan(id: string) {
     await this.getPlanById(id);
     await this.prisma.membershipPlan.delete({ where: { id } });
+    await this.invalidateCache();
   }
 }

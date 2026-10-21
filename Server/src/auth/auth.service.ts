@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RedisService } from '../redis/redis.service.js';
 import type { UserModel } from '../generated/prisma/models.js';
 import { ApiException } from '../common/api-error.js';
 
@@ -18,6 +19,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly redis: RedisService,
   ) {}
 
   /** Build the safe user payload (no password hash). */
@@ -40,9 +42,25 @@ export class AuthService {
   }
 
   /**
+   * Revoke a token server-side — stores its hash in Redis until the
+   * token's own `exp` passes, so blocklist entries self-clean. Called
+   * on logout and after a password change.
+   */
+  async revokeToken(token: string): Promise<void> {
+    const decoded = this.jwt.decode<{ exp?: number }>(token);
+    const remaining = decoded?.exp
+      ? decoded.exp - Math.floor(Date.now() / 1000)
+      : 0;
+    if (remaining > 0) {
+      await this.redis.set(`bl:${RedisService.hash(token)}`, '1', remaining);
+    }
+  }
+
+  /**
    * Verify a JWT's signature + expiry and load the user it belongs to.
    * The DB lookup keeps `isActive` revocation live — a deactivated user is
-   * rejected even with a valid token.
+   * rejected even with a valid token. A Redis blocklist key revokes
+   * individual tokens before expiry (logout, password change).
    */
   async resolveTokenUser(token: string): Promise<UserModel> {
     let payload: JwtPayload;
@@ -59,6 +77,14 @@ export class AuthService {
       throw new ApiException(
         401,
         'TOKEN_INVALID',
+        'Your session is invalid. Please log in again',
+      );
+    }
+
+    if (await this.redis.get(`bl:${RedisService.hash(token)}`)) {
+      throw new ApiException(
+        401,
+        'TOKEN_REVOKED',
         'Your session is invalid. Please log in again',
       );
     }
