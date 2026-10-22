@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  CalendarRange,
   CreditCard,
   Crown,
   Gamepad2,
@@ -23,6 +24,7 @@ export type NavItem = {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
   { href: "/bookings",     label: "Bookings",     icon: CalendarDays },
+  { href: "/calendar",     label: "Calendar",     icon: CalendarRange,    adminOnly: true },
   { href: "/games",        label: "Games",        icon: Gamepad2 },
   { href: "/plans",        label: "Plans",        icon: Crown,           adminOnly: true },
   { href: "/payments",     label: "Payments",     icon: Receipt,         adminOnly: true },
