@@ -91,7 +91,7 @@ export function GamesView() {
     return (
       <Card
         key={game.id}
-        className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm ring-1 ring-white/5 transition-all duration-200 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 hover:ring-primary/20"
+        className="overflow-hidden rounded-xl border border-primary/50 bg-card shadow-lg shadow-primary/10 ring-1 ring-primary/20 transition-all duration-200 hover:border-primary/70 hover:shadow-xl hover:shadow-primary/20"
       >
         {/* Image header */}
         <div className="relative h-44 w-full bg-muted">
