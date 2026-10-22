@@ -77,6 +77,14 @@ export interface Booking {
   payments?: BookingPayment[];
 }
 
+export interface CreateBookingInput {
+  gameId: string;
+  startAt: string;
+  endAt: string;
+  paymentMethod: BookingPaymentMethod;
+  customerNote?: string;
+}
+
 export interface ListBookingsParams {
   status?: BookingStatus;
   paymentStatus?: PaymentStatus;
@@ -119,13 +127,7 @@ export const bookingsApi = {
 
   get: (id: string) => api.get<Booking>(`/api/v1/bookings/${id}`),
 
-  create: (input: {
-    gameId: string;
-    startAt: string;
-    endAt: string;
-    paymentMethod: BookingPaymentMethod;
-    customerNote?: string;
-  }) =>
+  create: (input: CreateBookingInput) =>
     api.post<{ booking: Booking; checkoutUrl: string | null }>(
       "/api/v1/bookings",
       input

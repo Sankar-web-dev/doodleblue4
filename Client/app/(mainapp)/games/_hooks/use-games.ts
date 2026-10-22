@@ -4,10 +4,23 @@ import {
   GAMES_LIST_KEY,
   GAME_DETAIL_KEY,
   GAME_CATEGORIES_KEY,
+  PUBLIC_GAMES_KEY,
   type ListGamesParams,
   type CreateGameInput,
   type UpdateGameInput,
 } from "@/api/games.api";
+
+/** Public storefront catalog — ACTIVE games only. */
+export function usePublicGames(
+  params: ListGamesParams = { limit: 100 },
+  enabled = true
+) {
+  return useQuery({
+    queryKey: [...PUBLIC_GAMES_KEY, params],
+    queryFn: () => gamesApi.listPublic(params),
+    enabled,
+  });
+}
 
 /** Admin catalog — all statuses. */
 export function useGames(

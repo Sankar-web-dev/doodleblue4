@@ -1,10 +1,5 @@
-import { RequireAdmin } from "@/app/(mainapp)/_components/require-permission";
-import GamesView from "./_components/games-view";
+import { GamesRoleView } from "./_components/games-role-view";
 
 export default function GamesPage() {
-  return (
-    <RequireAdmin>
-      <GamesView />
-    </RequireAdmin>
-  );
+  return <GamesRoleView />;
 }

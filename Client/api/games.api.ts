@@ -3,6 +3,7 @@ import { api, PaginationMeta } from "@/lib/api";
 export const GAMES_LIST_KEY = ["games", "manage"] as const;
 export const GAME_DETAIL_KEY = ["games", "detail"] as const;
 export const GAME_CATEGORIES_KEY = ["games", "categories"] as const;
+export const PUBLIC_GAMES_KEY = ["games", "public"] as const;
 
 export type GameStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
 
@@ -60,6 +61,12 @@ function qs(params: ListGamesParams) {
 }
 
 export const gamesApi = {
+  /** Public storefront catalog — ACTIVE games only. */
+  listPublic: (params: ListGamesParams = {}) =>
+    api.getWithMeta<Game[], PaginationMeta>(
+      `/api/v1/games${qs(params)}`
+    ),
+
   /** Admin catalog — all statuses. */
   listAdmin: (params: ListGamesParams = {}) =>
     api.getWithMeta<Game[], PaginationMeta>(
