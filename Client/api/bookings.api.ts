@@ -65,6 +65,8 @@ export interface Booking {
   status: BookingStatus;
   paymentMethod: BookingPaymentMethod;
   paymentStatus: PaymentStatus;
+  /** Physical board/station number — venue tracking only. */
+  boardNumber: number | null;
   customerNote: string | null;
   adminNote: string | null;
   cancelledAt: string | null;

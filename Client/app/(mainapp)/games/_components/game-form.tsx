@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Upload, X } from "lucide-react";
@@ -50,6 +50,7 @@ export function GameForm({ game }: GameFormProps) {
     String(game?.maxBookingMins ?? 240)
   );
   const [capacity, setCapacity] = useState(String(game?.capacity ?? 1));
+  const [maxPlayers, setMaxPlayers] = useState(String(game?.maxPlayers ?? 2));
   const [status, setStatus] = useState<GameStatus>(game?.status ?? "ACTIVE");
   const [sortOrder, setSortOrder] = useState(String(game?.sortOrder ?? 0));
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -69,12 +70,22 @@ export function GameForm({ game }: GameFormProps) {
       setMinBookingMins(String(game.minBookingMins));
       setMaxBookingMins(String(game.maxBookingMins));
       setCapacity(String(game.capacity));
+      setMaxPlayers(String(game.maxPlayers ?? 2));
       setStatus(game.status);
       setSortOrder(String(game.sortOrder));
     }
   }
 
   const { data: categories } = useGameCategories();
+
+  // Dropdown options — existing categories from the API + sensible defaults,
+  // plus the game's current category when editing (so it stays selectable).
+  const categoryOptions = useMemo(() => {
+    const base = ["Board games", "Console", "Arcade", "Table sports", "VR"];
+    return Array.from(
+      new Set([...base, ...(categories ?? []), ...(game?.category ? [game.category] : [])])
+    );
+  }, [categories, game]);
 
   const onSaved = () => router.push("/games");
 
@@ -154,6 +165,7 @@ export function GameForm({ game }: GameFormProps) {
     const minMins = parseIntField(minBookingMins);
     const maxMins = parseIntField(maxBookingMins);
     const cap = parseIntField(capacity);
+    const players = parseIntField(maxPlayers);
     const sort = parseIntField(sortOrder);
 
     if (minMins == null || minMins < 15 || minMins > 1440) {
@@ -169,7 +181,11 @@ export function GameForm({ game }: GameFormProps) {
       return;
     }
     if (cap == null || cap < 1 || cap > 100) {
-      setError("Capacity must be between 1 and 100.");
+      setError("Boards / stations must be between 1 and 100.");
+      return;
+    }
+    if (players == null || players < 1 || players > 100) {
+      setError("Players per game must be between 1 and 100.");
       return;
     }
     if (sort == null || sort < 0 || sort > 10000) {
@@ -193,6 +209,7 @@ export function GameForm({ game }: GameFormProps) {
           minBookingMins: minMins,
           maxBookingMins: maxMins,
           capacity: cap,
+          maxPlayers: players,
           status,
           sortOrder: sort,
         },
@@ -210,6 +227,7 @@ export function GameForm({ game }: GameFormProps) {
           minBookingMins: minMins,
           maxBookingMins: maxMins,
           capacity: cap,
+          maxPlayers: players,
           status,
           sortOrder: sort,
         },
@@ -274,20 +292,22 @@ export function GameForm({ game }: GameFormProps) {
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="game-category">Category</Label>
-          <Input
-            id="game-category"
-            placeholder="e.g. Console, VR, Board games"
-            className="h-11 rounded-lg"
+          <Select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onValueChange={setCategory}
             disabled={isPending}
-            list="game-categories"
-          />
-          <datalist id="game-categories">
-            {(categories ?? []).map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
+          >
+            <SelectTrigger id="game-category" className="h-11 rounded-lg w-full">
+              <SelectValue placeholder="Pick a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categoryOptions.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">
@@ -309,8 +329,8 @@ export function GameForm({ game }: GameFormProps) {
         </div>
       </div>
 
-      {/* Price + Capacity + Sort order */}
-      <div className="grid gap-5 sm:grid-cols-3">
+      {/* Price + Boards + Players + Sort order */}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-2">
           <Label htmlFor="game-price">Price per hour (₹)</Label>
           <Input
@@ -326,7 +346,7 @@ export function GameForm({ game }: GameFormProps) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="game-capacity">Capacity</Label>
+          <Label htmlFor="game-capacity">Boards / stations</Label>
           <Input
             id="game-capacity"
             type="number"
@@ -339,7 +359,25 @@ export function GameForm({ game }: GameFormProps) {
             disabled={isPending}
           />
           <p className="text-xs text-muted-foreground">
-            Simultaneous bookings allowed.
+            Physical boards or stations — e.g. carrom has 2 boards, so 2
+            bookings can share a slot.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="game-players">Players per game</Label>
+          <Input
+            id="game-players"
+            type="number"
+            min={1}
+            max={100}
+            step={1}
+            className="h-11 rounded-lg"
+            value={maxPlayers}
+            onChange={(e) => setMaxPlayers(e.target.value)}
+            disabled={isPending}
+          />
+          <p className="text-xs text-muted-foreground">
+            Shown to customers — e.g. carrom = 2 players, PS5 = 5.
           </p>
         </div>
         <div className="space-y-2">

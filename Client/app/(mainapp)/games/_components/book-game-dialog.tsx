@@ -29,10 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import {
-  useCreateBooking,
-  useGameAvailability,
-} from "../../bookings/_hooks/use-bookings";
+import { useCreateBooking } from "../../bookings/_hooks/use-bookings";
 
 interface BookGameDialogProps {
   game: Game | null;
@@ -71,13 +68,6 @@ function nextHourTime() {
   return d.toTimeString().slice(0, 5);
 }
 
-function fmtSlot(iso: string) {
-  return new Date(iso).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 /** Booking form for one game — details → Stripe checkout or pay-at-centre. */
 export function BookGameDialog({ game, onClose }: BookGameDialogProps) {
   const createBooking = useCreateBooking();
@@ -90,8 +80,6 @@ export function BookGameDialog({ game, onClose }: BookGameDialogProps) {
   const [note, setNote] = useState("");
   const [done, setDone] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-
-  const { data: availability } = useGameAvailability(game?.id ?? null, date);
 
   const durations = useMemo(() => {
     if (!game) return [];
@@ -161,8 +149,6 @@ export function BookGameDialog({ game, onClose }: BookGameDialogProps) {
     );
   }
 
-  const taken = availability?.slots ?? [];
-
   return (
     <AppDialog
       open={!!game}
@@ -171,7 +157,7 @@ export function BookGameDialog({ game, onClose }: BookGameDialogProps) {
       icon={<Gamepad2 className="h-5 w-5 text-primary" />}
       description={
         game
-          ? `${game.category} · ${formatINR(game.pricePerHour)}/hr · up to ${game.capacity} players`
+          ? `${game.category} · ${formatINR(game.pricePerHour)}/hr · up to ${game.maxPlayers ?? 2} players`
           : undefined
       }
     >
@@ -240,24 +226,6 @@ export function BookGameDialog({ game, onClose }: BookGameDialogProps) {
               </SelectContent>
             </Select>
           </div>
-
-          {taken.length > 0 && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">
-                Already booked on this date
-              </p>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {taken.map((s) => (
-                  <span
-                    key={s.startAt}
-                    className="rounded-md bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-600"
-                  >
-                    {fmtSlot(s.startAt)} – {fmtSlot(s.endAt)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

@@ -97,6 +97,11 @@ function BookingRow({ booking }: { booking: Booking }) {
         </div>
 
         <div className="flex items-center gap-2">
+          {booking.boardNumber != null && (
+            <Badge variant="outline" className="text-xs">
+              Board {booking.boardNumber}
+            </Badge>
+          )}
           <Badge className={`${STATUS_STYLES[booking.status]} text-xs`}>
             {booking.status.replace("_", " ")}
           </Badge>

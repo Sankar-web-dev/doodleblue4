@@ -87,9 +87,11 @@ function GameCard({
           <div className="flex flex-col items-start gap-1">
             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
               <Users className="h-3 w-3" />
-              Capacity
+              Players
             </span>
-            <span className="text-sm font-semibold">{game.capacity}</span>
+            <span className="text-sm font-semibold">
+              {game.maxPlayers ?? 2}
+            </span>
           </div>
           <div className="flex flex-col items-start gap-1">
             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">

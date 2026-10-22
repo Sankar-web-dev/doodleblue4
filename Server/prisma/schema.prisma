@@ -110,6 +110,9 @@ model Game {
   minBookingMins Int        @default(60)
   maxBookingMins Int        @default(240)
   capacity       Int        @default(1)
+  // Players per booking/session — customer-facing (e.g. carrom = 2, PS5 = 5).
+  // Distinct from `capacity`, which is the venue's board/station count.
+  maxPlayers     Int        @default(2)
   status         GameStatus @default(ACTIVE)
   sortOrder      Int        @default(0)
 
@@ -221,6 +224,9 @@ model Booking {
   status              BookingStatus        @default(PENDING)
   paymentMethod       BookingPaymentMethod
   paymentStatus       PaymentStatus        @default(PENDING)
+  // Physical board/station (1..Game.capacity) assigned at booking time —
+  // for the venue's own tracking; never shown to customers.
+  boardNumber         Int?
   customerNote        String?
   adminNote           String?
   cancelledAt         DateTime?

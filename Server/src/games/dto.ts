@@ -73,13 +73,21 @@ export class CreateGameDto {
   @Max(1440)
   maxBookingMins?: number;
 
-  /** Simultaneous bookings allowed for this game. */
+  /** Boards/stations — simultaneous bookings allowed for this game. */
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)
   capacity?: number;
+
+  /** Players per booking/session — shown to customers. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  maxPlayers?: number;
 
   @IsOptional()
   @IsEnum(GameStatus)
@@ -157,6 +165,14 @@ export class UpdateGameDto {
   @Min(1)
   @Max(100)
   capacity?: number;
+
+  /** Players per booking/session — shown to customers. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  maxPlayers?: number;
 
   @IsOptional()
   @IsEnum(GameStatus)

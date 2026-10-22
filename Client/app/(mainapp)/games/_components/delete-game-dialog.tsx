@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 import type { Game } from "@/api/games.api";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,12 @@ export function DeleteGameDialog({ game, onClose }: DeleteGameDialogProps) {
             book it. This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
+        {deleteMutation.error && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {deleteMutation.error.message}
+          </div>
+        )}
         <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={onClose}>
             Cancel

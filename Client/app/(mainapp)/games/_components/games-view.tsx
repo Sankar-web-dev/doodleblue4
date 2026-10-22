@@ -172,7 +172,7 @@ export function GamesView() {
             <div className="flex flex-col items-start gap-1">
               <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 <Users className="h-3 w-3" />
-                Capacity
+                Boards
               </span>
               <span className="text-sm font-semibold">{game.capacity}</span>
             </div>

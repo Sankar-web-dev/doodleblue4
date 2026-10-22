@@ -18,7 +18,10 @@ export interface Game {
   pricePerHour: string | number;
   minBookingMins: number;
   maxBookingMins: number;
+  /** Boards/stations — simultaneous bookings allowed (admin-facing). */
   capacity: number;
+  /** Players per booking/session — customer-facing. */
+  maxPlayers: number;
   status: GameStatus;
   sortOrder: number;
   createdAt: string;
@@ -35,6 +38,7 @@ export interface CreateGameInput {
   minBookingMins?: number;
   maxBookingMins?: number;
   capacity?: number;
+  maxPlayers?: number;
   status?: GameStatus;
   sortOrder?: number;
 }
