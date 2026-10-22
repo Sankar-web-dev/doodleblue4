@@ -6,7 +6,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUrl,
   Matches,
   Max,
   MaxLength,
@@ -45,8 +44,11 @@ export class CreateGameDto {
   @MaxLength(60)
   category!: string;
 
+  /** http(s) URL or a site-relative path served by the API (e.g. /api/v1/storage/<id>). */
   @IsOptional()
-  @IsUrl()
+  @Matches(/^(\/|https?:\/\/)\S+$/, {
+    message: 'imageUrl must be an http(s) URL or a path starting with /',
+  })
   @MaxLength(500)
   imageUrl?: string;
 
@@ -120,8 +122,11 @@ export class UpdateGameDto {
   @MaxLength(60)
   category?: string;
 
+  /** http(s) URL or a site-relative path served by the API (e.g. /api/v1/storage/<id>). */
   @IsOptional()
-  @IsUrl()
+  @Matches(/^(\/|https?:\/\/)\S+$/, {
+    message: 'imageUrl must be an http(s) URL or a path starting with /',
+  })
   @MaxLength(500)
   imageUrl?: string | null;
 
