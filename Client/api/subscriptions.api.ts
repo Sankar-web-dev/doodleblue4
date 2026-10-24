@@ -63,6 +63,12 @@ export const subscriptionsApi = {
       membershipPlanId,
       billingInterval,
     }),
+
+  /** Explicitly verify checkout session with Stripe. */
+  verifyCheckout: (sessionId: string) =>
+    api.post<{ verified: boolean; subscription: SubscriptionRecord | null }>(
+      `/api/v1/subscriptions/verify?session_id=${encodeURIComponent(sessionId)}`
+    ),
 };
 
 /**
