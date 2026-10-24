@@ -62,11 +62,11 @@ export function CalendarView() {
           </p>
         </div>
 
-        <div className="mt-6 flex items-center gap-3">
-          <div className="relative max-w-sm flex-1">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative w-full sm:max-w-sm flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="pl-9"
+              className="pl-9 w-full"
               placeholder="Search bookings…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -75,7 +75,7 @@ export function CalendarView() {
           <Button
             variant="outline"
             size="sm"
-            className="h-9 text-xs"
+            className="h-9 text-xs shrink-0 self-start sm:self-auto"
             onClick={() => setShowCancelled((v) => !v)}
           >
             {showCancelled ? "Hide cancelled" : "Show cancelled"}

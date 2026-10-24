@@ -122,71 +122,73 @@ function BookingRow({ booking }: { booking: Booking }) {
             {formatINR(booking.totalAmount)}
           </span>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8"
-                disabled={busy}
-              >
-                {busy ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <MoreVertical className="h-4 w-4" />
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {booking.status === "PENDING" && (
-                <DropdownMenuItem onClick={() => act({ status: "CONFIRMED" })}>
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Confirm booking
-                </DropdownMenuItem>
-              )}
-              {booking.paymentStatus === "PENDING" &&
-                booking.paymentMethod === "STRIPE" &&
-                booking.status !== "CANCELLED" && (
-                  <DropdownMenuItem
-                    onClick={() => verify.mutate({ id: booking.id })}
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Verify Stripe payment
-                  </DropdownMenuItem>
-                )}
-              {booking.paymentStatus === "PENDING" &&
-                booking.status !== "CANCELLED" && (
-                  <DropdownMenuItem
-                    onClick={() => act({ paymentStatus: "SUCCEEDED" })}
-                  >
-                    <Wallet className="mr-2 h-4 w-4" />
-                    Mark as paid (counter)
-                  </DropdownMenuItem>
-                )}
-              {booking.status === "CONFIRMED" && (
-                <>
-                  <DropdownMenuItem onClick={() => act({ status: "COMPLETED" })}>
-                    <CheckCheck className="mr-2 h-4 w-4" />
-                    Mark completed
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => act({ status: "NO_SHOW" })}>
-                    <Clock className="mr-2 h-4 w-4" />
-                    Mark no-show
-                  </DropdownMenuItem>
-                </>
-              )}
-              {(booking.status === "PENDING" ||
-                booking.status === "CONFIRMED") && (
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => act({ status: "CANCELLED" })}
+          {booking.status !== "COMPLETED" && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  disabled={busy}
                 >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Cancel booking
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  {busy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <MoreVertical className="h-4 w-4" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {booking.status === "PENDING" && (
+                  <DropdownMenuItem onClick={() => act({ status: "CONFIRMED" })}>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Confirm booking
+                  </DropdownMenuItem>
+                )}
+                {booking.paymentStatus === "PENDING" &&
+                  booking.paymentMethod === "STRIPE" &&
+                  booking.status !== "CANCELLED" && (
+                    <DropdownMenuItem
+                      onClick={() => verify.mutate({ id: booking.id })}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Verify Stripe payment
+                    </DropdownMenuItem>
+                  )}
+                {booking.paymentStatus === "PENDING" &&
+                  booking.status !== "CANCELLED" && (
+                    <DropdownMenuItem
+                      onClick={() => act({ paymentStatus: "SUCCEEDED" })}
+                    >
+                      <Wallet className="mr-2 h-4 w-4" />
+                      Mark as paid (counter)
+                    </DropdownMenuItem>
+                  )}
+                {booking.status === "CONFIRMED" && (
+                  <>
+                    <DropdownMenuItem onClick={() => act({ status: "COMPLETED" })}>
+                      <CheckCheck className="mr-2 h-4 w-4" />
+                      Mark completed
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => act({ status: "NO_SHOW" })}>
+                      <Clock className="mr-2 h-4 w-4" />
+                      Mark no-show
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {(booking.status === "PENDING" ||
+                  booking.status === "CONFIRMED") && (
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => act({ status: "CANCELLED" })}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Cancel booking
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </CardContent>
     </Card>

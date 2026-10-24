@@ -1,14 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Loader2,
   AlertCircle,
   RefreshCw,
   Eye,
-  Pencil,
-  Trash2,
   CheckCircle2,
   XCircle,
   ShieldCheck,
@@ -27,12 +24,9 @@ import { isAdmin } from "@/lib/permissions";
 import { ForbiddenState } from "../../_components/forbidden-state";
 import { useUsers } from "../_hooks/use-users";
 import { UserDetailsSheet } from "./user-details-sheet";
-import { DeleteUserDialog } from "./delete-user-dialog";
 
 export function UsersView() {
-  const router = useRouter();
   const [viewUser, setViewUser] = useState<User | null>(null);
-  const [deleteUser, setDeleteUser] = useState<User | null>(null);
 
   const { user: currentUser } = useAuthUser();
   const admin = isAdmin(currentUser);
@@ -128,34 +122,11 @@ export function UsersView() {
               <Eye className="h-3.5 w-3.5 mr-1.5" />
               View details
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 text-xs"
-              onClick={() => router.push(`/users/${row.original.id}/edit`)}
-            >
-              <Pencil className="h-3.5 w-3.5 mr-1.5" />
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setDeleteUser(row.original)}
-              disabled={row.original.role === "SUPER_ADMIN"}
-              title={
-                row.original.role === "SUPER_ADMIN"
-                  ? "SUPER_ADMIN cannot be deleted"
-                  : undefined
-              }
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
           </div>
         ),
       },
     ],
-    [router]
+    []
   );
 
   if (currentUser && !admin) {
@@ -215,12 +186,6 @@ export function UsersView() {
 
       {/* View details sheet */}
       <UserDetailsSheet user={viewUser} onClose={() => setViewUser(null)} />
-
-      {/* Delete user confirm dialog */}
-      <DeleteUserDialog
-        user={deleteUser}
-        onClose={() => setDeleteUser(null)}
-      />
     </div>
   );
 }

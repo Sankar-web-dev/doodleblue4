@@ -29,7 +29,15 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS = [
+  { short: "S", full: "Sun" },
+  { short: "M", full: "Mon" },
+  { short: "T", full: "Tue" },
+  { short: "W", full: "Wed" },
+  { short: "T", full: "Thu" },
+  { short: "F", full: "Fri" },
+  { short: "S", full: "Sat" },
+];
 const MAX_CHIPS = 2;
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
@@ -109,9 +117,9 @@ function fmtRange(startAt: string, endAt: string) {
 function DayBooking({ booking }: { booking: Booking }) {
   const palette = gamePalette(booking.game.id);
   return (
-    <div className="glass-card rounded-lg p-4">
+    <div className="glass-card rounded-lg p-3.5 sm:p-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <div
             className={cn(
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
@@ -126,7 +134,7 @@ function DayBooking({ booking }: { booking: Booking }) {
             </p>
             <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
               <User className="h-3 w-3 shrink-0" />
-              {booking.user.name}
+              <span className="truncate">{booking.user.name}</span>
             </p>
           </div>
         </div>
@@ -136,13 +144,16 @@ function DayBooking({ booking }: { booking: Booking }) {
         </span>
       </div>
 
-      <p className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Clock className="h-3.5 w-3.5" />
-        {formatSlot(booking.startAt, booking.endAt)} ·{" "}
-        {booking.durationMinutes} min · #{booking.bookingNumber}
-      </p>
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+        <Clock className="h-3.5 w-3.5 shrink-0" />
+        <span>{formatSlot(booking.startAt, booking.endAt)}</span>
+        <span>·</span>
+        <span>{booking.durationMinutes} min</span>
+        <span>·</span>
+        <span className="font-mono">#{booking.bookingNumber}</span>
+      </div>
 
-      <div className="mt-2.5 flex items-center gap-2">
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
         <Badge className={`${STATUS_STYLES[booking.status]} text-xs`}>
           {booking.status.replace("_", " ")}
         </Badge>
@@ -219,65 +230,66 @@ export function BookingsCalendar({
       new Date(month.getFullYear(), month.getMonth() + delta, 1)
     );
 
-  const navButtons = (
-    <>
-      <Button
-        variant="outline"
-        size="icon"
-        className="h-8 w-8"
-        onClick={() => shiftMonth(-1)}
-        aria-label="Previous month"
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        className="h-8 w-8"
-        onClick={() => shiftMonth(1)}
-        aria-label="Next month"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-    </>
-  );
-
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Month & Nav Controls */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          {navButtons}
-          <h2 className="ml-2 font-display text-lg font-semibold tracking-tight">
+          <h2 className="font-display text-base sm:text-lg font-semibold tracking-tight">
             Calendar ·{" "}
-            {month.toLocaleString([], { month: "long", year: "numeric" })}
+            <span className="text-primary">
+              {month.toLocaleString([], { month: "long", year: "numeric" })}
+            </span>
           </h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between sm:justify-end gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs"
+            className="h-8 text-xs px-2.5 sm:px-3"
             onClick={() => onMonthChange(firstOfMonth(new Date()))}
           >
             Today
           </Button>
-          {navButtons}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => shiftMonth(-1)}
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => shiftMonth(1)}
+              aria-label="Next month"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-        {WEEKDAYS.map((d) => (
+      {/* Weekday headers & Days grid */}
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
+        {WEEKDAYS.map((d, i) => (
           <div
-            key={d}
+            key={i}
             className="pb-1 text-center text-xs font-medium text-muted-foreground"
           >
-            {d}
+            <span className="sm:hidden">{d.short}</span>
+            <span className="hidden sm:inline">{d.full}</span>
           </div>
         ))}
 
         {weeks.flat().map((day) => {
           const inMonth = day.getMonth() === month.getMonth();
           const isToday = sameDay(day, today);
+          const isSelected = selectedDay && sameDay(day, selectedDay);
           const dayBookings = byDay.get(dayKey(day)) ?? [];
           return (
             <button
@@ -285,74 +297,109 @@ export function BookingsCalendar({
               type="button"
               onClick={() => setSelectedDay(day)}
               className={cn(
-                "flex min-h-24 flex-col gap-1 rounded-lg border p-1.5 text-left transition-all duration-200 sm:min-h-28 sm:p-2",
+                "group relative flex min-h-[56px] sm:min-h-24 md:min-h-28 flex-col gap-1 rounded-lg border p-1 sm:p-2 text-left transition-all duration-200 overflow-hidden",
                 inMonth
                   ? "border-border bg-card/40 hover:border-primary/60 hover:bg-card/60 hover:shadow-[0_0_20px_-6px] hover:shadow-primary/40"
                   : "border-border/50 bg-transparent opacity-45 hover:border-primary/40 hover:opacity-75",
                 isToday &&
-                  "border-primary/80 bg-primary/5 shadow-[0_0_24px_-4px] shadow-primary/60 ring-1 ring-primary/30"
+                  "border-primary/80 bg-primary/5 shadow-[0_0_24px_-4px] shadow-primary/60 ring-1 ring-primary/30",
+                isSelected &&
+                  "ring-2 ring-primary border-primary bg-primary/10 shadow-md"
               )}
             >
-              <div className="flex items-center justify-between gap-1">
+              <div className="flex items-center justify-between gap-1 w-full">
                 <span
                   className={cn(
-                    "text-xs font-semibold",
-                    isToday && "text-primary",
+                    "text-xs font-semibold leading-none",
+                    isToday && "text-primary font-bold",
                     !inMonth && "text-muted-foreground"
                   )}
                 >
                   {day.getDate()}
                 </span>
                 {dayBookings.length > 0 && (
-                  <span className="text-[9px] leading-none text-muted-foreground">
-                    {dayBookings.length} booking
-                    {dayBookings.length === 1 ? "" : "s"}
-                  </span>
+                  <>
+                    <span className="sm:hidden flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/20 px-1 text-[9px] font-bold text-primary">
+                      {dayBookings.length}
+                    </span>
+                    <span className="hidden sm:inline text-[9px] leading-none text-muted-foreground truncate">
+                      {dayBookings.length} booking{dayBookings.length === 1 ? "" : "s"}
+                    </span>
+                  </>
                 )}
               </div>
 
-              {dayBookings.slice(0, MAX_CHIPS).map((b) => {
-                const palette = gamePalette(b.game.id);
-                return (
-                  <span
-                    key={b.id}
-                    className={cn(
-                      "flex w-full items-center gap-1.5 rounded-md border border-l-2 px-1.5 py-1",
-                      palette.chip,
-                      b.status === "CANCELLED" && "opacity-50"
-                    )}
-                  >
+              {/* Mobile indicator dots */}
+              {dayBookings.length > 0 && (
+                <div className="flex sm:hidden flex-wrap items-center gap-1 mt-auto pt-0.5">
+                  {dayBookings.slice(0, 3).map((b) => (
                     <span
+                      key={b.id}
                       className={cn(
-                        "flex h-5 w-5 shrink-0 items-center justify-center rounded",
-                        palette.icon
+                        "h-1.5 w-1.5 rounded-full shrink-0",
+                        b.status === "CANCELLED"
+                          ? "bg-muted-foreground/40"
+                          : b.status === "COMPLETED"
+                            ? "bg-primary"
+                            : b.status === "CONFIRMED"
+                              ? "bg-emerald-400"
+                              : "bg-amber-400"
+                      )}
+                    />
+                  ))}
+                  {dayBookings.length > 3 && (
+                    <span className="text-[8px] leading-none text-muted-foreground font-semibold">
+                      +{dayBookings.length - 3}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Tablet/Desktop chips */}
+              <div className="hidden sm:flex flex-col gap-1 w-full">
+                {dayBookings.slice(0, MAX_CHIPS).map((b) => {
+                  const palette = gamePalette(b.game.id);
+                  return (
+                    <span
+                      key={b.id}
+                      className={cn(
+                        "flex w-full items-center gap-1.5 rounded-md border border-l-2 px-1.5 py-1",
+                        palette.chip,
+                        b.status === "CANCELLED" && "opacity-50"
                       )}
                     >
-                      <Gamepad2 className="h-3 w-3" />
-                    </span>
-                    <span className="min-w-0 flex-1">
                       <span
                         className={cn(
-                          "block truncate text-[10px] font-semibold leading-tight",
-                          b.status === "CANCELLED" && "line-through"
+                          "flex h-5 w-5 shrink-0 items-center justify-center rounded",
+                          palette.icon
                         )}
                       >
-                        {b.game.name}
+                        <Gamepad2 className="h-3 w-3" />
                       </span>
-                      <span className="block truncate text-[9px] leading-tight opacity-80">
-                        {fmtRange(b.startAt, b.endAt)}
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={cn(
+                            "block truncate text-[10px] font-semibold leading-tight",
+                            b.status === "CANCELLED" && "line-through"
+                          )}
+                        >
+                          {b.game.name}
+                        </span>
+                        <span className="block truncate text-[9px] leading-tight opacity-80">
+                          {fmtRange(b.startAt, b.endAt)}
+                        </span>
                       </span>
+                      <ChevronRight className="hidden lg:block h-3 w-3 shrink-0 opacity-60" />
                     </span>
-                    <ChevronRight className="h-3 w-3 shrink-0 opacity-60" />
-                  </span>
-                );
-              })}
+                  );
+                })}
 
-              {dayBookings.length > MAX_CHIPS && (
-                <span className="px-1 text-[10px] text-muted-foreground">
-                  +{dayBookings.length - MAX_CHIPS} more
-                </span>
-              )}
+                {dayBookings.length > MAX_CHIPS && (
+                  <span className="px-1 text-[10px] text-muted-foreground truncate">
+                    +{dayBookings.length - MAX_CHIPS} more
+                  </span>
+                )}
+              </div>
             </button>
           );
         })}
@@ -365,23 +412,41 @@ export function BookingsCalendar({
         </div>
       )}
 
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <CalendarDays className="h-3.5 w-3.5" />
-        Click a day to see its bookings.
-      </p>
+      {/* Legend & Hint */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-xs text-muted-foreground">
+        <p className="flex items-center gap-1.5">
+          <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+          <span>Click any day to view complete bookings.</span>
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            Confirmed
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-amber-400" />
+            Pending
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-primary" />
+            Completed
+          </span>
+        </div>
+      </div>
 
+      {/* Selected Day Sheet */}
       <Sheet
         open={!!selectedDay}
         onOpenChange={(v) => !v && setSelectedDay(null)}
       >
         <SheetContent
           side="right"
-          className="w-full overflow-y-auto sm:max-w-md"
+          className="w-full overflow-y-auto sm:max-w-md p-4 sm:p-6"
         >
           {selectedDay && (
             <>
               <SheetHeader>
-                <SheetTitle>
+                <SheetTitle className="text-base sm:text-lg">
                   {selectedDay.toLocaleDateString([], {
                     weekday: "long",
                     day: "numeric",
@@ -391,18 +456,25 @@ export function BookingsCalendar({
                 </SheetTitle>
                 <SheetDescription>
                   {selectedBookings.length === 0
-                    ? "No bookings on this day."
+                    ? "No bookings scheduled on this day."
                     : `${selectedBookings.length} booking${
                         selectedBookings.length === 1 ? "" : "s"
                       }`}
                 </SheetDescription>
               </SheetHeader>
 
-              <div className="mt-5 flex flex-col gap-3">
-                {selectedBookings.map((b) => (
-                  <DayBooking key={b.id} booking={b} />
-                ))}
-              </div>
+              {selectedBookings.length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  <CalendarDays className="mx-auto mb-2 h-8 w-8 opacity-40" />
+                  No bookings on this day.
+                </div>
+              ) : (
+                <div className="mt-5 flex flex-col gap-3">
+                  {selectedBookings.map((b) => (
+                    <DayBooking key={b.id} booking={b} />
+                  ))}
+                </div>
+              )}
             </>
           )}
         </SheetContent>
