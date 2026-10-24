@@ -6,7 +6,6 @@ import {
   Crown,
   Gamepad2,
   LayoutDashboard,
-  Receipt,
   Users,
   MessageSquareQuote,
 } from "lucide-react";
@@ -29,7 +28,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/calendar",     label: "Calendar",     icon: CalendarRange,    adminOnly: true },
   { href: "/games",        label: "Games",        icon: Gamepad2 },
   { href: "/plans",        label: "Plans",        icon: Crown,           adminOnly: true },
-  { href: "/payments",     label: "Payments",     icon: Receipt,         adminOnly: true },
   { href: "/testimonials", label: "Testimonials", icon: MessageSquareQuote },
   { href: "/reports",      label: "Reports",      icon: BarChart3,       adminOnly: true },
   { href: "/users",        label: "Users",        icon: Users,           adminOnly: true },

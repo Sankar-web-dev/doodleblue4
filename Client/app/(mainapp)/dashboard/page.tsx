@@ -4,10 +4,10 @@ import Link from "next/link";
 import {
   ArrowRight,
   CalendarDays,
+  CalendarRange,
   CreditCard,
   Crown,
   Gamepad2,
-  Receipt,
   ShieldCheck,
   Users,
   UserCheck,
@@ -123,7 +123,7 @@ export default function DashboardPage() {
               { href: "/bookings", label: "Bookings", icon: CalendarDays },
               { href: "/games",    label: "Games",    icon: Gamepad2 },
               { href: "/plans",    label: "Plans",    icon: Crown },
-              { href: "/payments", label: "Payments", icon: Receipt },
+              { href: "/calendar", label: "Calendar", icon: CalendarRange },
             ].map((item) => (
               <Link key={item.href} href={item.href} className="group">
                 <Card className="glass-card h-full transition-all group-hover:-translate-y-0.5">

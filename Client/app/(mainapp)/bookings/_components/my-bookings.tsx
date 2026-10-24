@@ -84,7 +84,10 @@ function BookingRow({ booking }: { booking: Booking }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="text-xs">
+            {booking.paymentMethod === "STRIPE" ? "Online (Stripe)" : "Pay at centre"}
+          </Badge>
           <Badge className={`${STATUS_STYLES[booking.status]} text-xs`}>
             {booking.status.replace("_", " ")}
           </Badge>
