@@ -59,6 +59,21 @@ export class BookingsController {
   }
 
   /**
+   * Verify booking payment directly against Stripe.
+   * Called when a customer returns from Stripe checkout.
+   */
+  @Post(':id/verify-payment')
+  verifyPayment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UserModel,
+    @Query('session_id') sessionId?: string,
+  ) {
+    return this.bookings
+      .verifyBookingPayment(id, user, sessionId)
+      .then((data) => ({ data }));
+  }
+
+  /**
    * Create a booking. PAY_AT_CENTRE confirms immediately; STRIPE returns
    * checkoutUrl — redirect the customer there to pay.
    */

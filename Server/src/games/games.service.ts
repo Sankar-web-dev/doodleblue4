@@ -222,15 +222,17 @@ export class GamesService {
    */
   async deleteGame(id: string) {
     await this.getGameById(id);
-    try {
-      await this.prisma.game.delete({ where: { id } });
-      await this.invalidateCache();
-    } catch {
+    const bookings = await this.prisma.booking.count({
+      where: { gameId: id },
+    });
+    if (bookings > 0) {
       throw new ApiException(
         409,
         'GAME_HAS_BOOKINGS',
-        'This game has bookings — set it INACTIVE instead of deleting',
+        `This game has ${bookings} booking${bookings === 1 ? '' : 's'} (including cancelled) — set it INACTIVE instead of deleting`,
       );
     }
+    await this.prisma.game.delete({ where: { id } });
+    await this.invalidateCache();
   }
 }

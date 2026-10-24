@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard.js';
@@ -42,11 +43,33 @@ export class StripeController {
     return { data };
   }
 
-  /** The caller's subscription record (with the joined plan details). */
+  /**
+   * The caller's subscription record (with the joined plan details).
+   * Automatically auto-syncs with Stripe if no active subscription is in the DB.
+   */
   @Get('me')
   async mySubscription(@CurrentUser() user: UserModel) {
-    const subscription = await this.stripe.getSubscription(user.id);
+    let subscription = await this.stripe.getSubscription(user.id);
+    if (!subscription || subscription.status !== 'active') {
+      subscription = await this.stripe.syncUserSubscriptionFromStripe(user);
+    }
     return { data: subscription ?? null };
+  }
+
+  /**
+   * Explicitly verify a membership checkout session directly against Stripe.
+   * Called when a customer returns from Stripe checkout.
+   */
+  @Post('verify')
+  async verifySubscription(
+    @Query('session_id') sessionId: string,
+    @CurrentUser() user: UserModel,
+  ) {
+    const data = await this.stripe.verifyMembershipCheckoutSession(
+      sessionId,
+      user,
+    );
+    return { data };
   }
 
   /** Active membership plans for the pricing page. */

@@ -11,4 +11,5 @@ export * from "./games.api";
 export * from "./membership-plans.api";
 export * from "./payments.api";
 export * from "./subscriptions.api";
+export * from "./testimonials.api";
 export * from "./users.api";

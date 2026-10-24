@@ -11,7 +11,9 @@ import { GamesModule } from './games/games.module.js';
 import { MembershipPlansModule } from './membership-plans/membership-plans.module.js';
 import { BookingsModule } from './bookings/bookings.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
+import { ReportsModule } from './reports/reports.module.js';
 import { StripeModule } from './stripe/stripe.module.js';
+import { TestimonialsModule } from './testimonials/testimonials.module.js';
 import { ApiExceptionFilter } from './common/api-exception.filter.js';
 import { EnvelopeInterceptor } from './common/envelope.interceptor.js';
 
@@ -39,7 +41,9 @@ import { StorageModule } from './storage/storage.module.js';
     MembershipPlansModule,
     BookingsModule,
     PaymentsModule,
+    ReportsModule,
     StripeModule,
+    TestimonialsModule,
   ],
   controllers: [AppController],
   providers: [

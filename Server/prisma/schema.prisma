@@ -63,6 +63,12 @@ enum BillingInterval {
   YEARLY
 }
 
+enum TestimonialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ======================================================
 // USERS
 // No dynamic RBAC. The app has only a shop owner/admin
@@ -82,6 +88,7 @@ model User {
   subscription Subscription?
   bookings     Booking[]
   payments     Payment[]
+  testimonials Testimonial[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -110,6 +117,9 @@ model Game {
   minBookingMins Int        @default(60)
   maxBookingMins Int        @default(240)
   capacity       Int        @default(1)
+  // Players per booking/session — customer-facing (e.g. carrom = 2, PS5 = 5).
+  // Distinct from `capacity`, which is the venue's board/station count.
+  maxPlayers     Int        @default(2)
   status         GameStatus @default(ACTIVE)
   sortOrder      Int        @default(0)
 
@@ -221,6 +231,9 @@ model Booking {
   status              BookingStatus        @default(PENDING)
   paymentMethod       BookingPaymentMethod
   paymentStatus       PaymentStatus        @default(PENDING)
+  // Physical board/station (1..Game.capacity) assigned at booking time —
+  // for the venue's own tracking; never shown to customers.
+  boardNumber         Int?
   customerNote        String?
   adminNote           String?
   cancelledAt         DateTime?
@@ -292,3 +305,32 @@ model StoredFile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ======================================================
+// TESTIMONIALS
+// Customer reviews & ratings. Admin reviews submissions,
+// approves/rejects them, and marks selected testimonials
+// to be featured on the hero / landing page.
+// ======================================================
+
+model Testimonial {
+  id        String            @id @default(uuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  rating    Int               @default(5)
+  headline  String?
+  content   String
+  status    TestimonialStatus @default(PENDING)
+  isHero    Boolean           @default(false)
+  adminNote String?
+
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([status])
+  @@index([isHero])
+  @@index([userId])
+  @@index([createdAt])
+}
+

@@ -7,12 +7,17 @@ export interface AuthFeature {
   description: string;
 }
 
+const STATS = [
+  { value: "50+", label: "Game stations" },
+  { value: "10+", label: "Game zones" },
+  { value: "24/7", label: "Arena access" },
+];
+
 interface AuthBrandPanelProps {
   /** Headline rendered as the large display heading. */
   headline: ReactNode;
   subtitle: string;
   features: AuthFeature[];
-  footer?: string;
 }
 
 /** Left brand panel shared by the login & signup screens (large screens only). */
@@ -20,40 +25,57 @@ export function AuthBrandPanel({
   headline,
   subtitle,
   features,
-  footer = "DoodleBlue Admin Console",
 }: AuthBrandPanelProps) {
   return (
-    <aside className="relative hidden w-1/2 overflow-hidden lg:flex lg:flex-col lg:justify-between bg-[oklch(0.12_0.03_278)] p-12 text-white">
-      {/* Decorations — cyber grid + drifting neon orbs */}
-      <div className="cyber-grid pointer-events-none absolute inset-0 opacity-70" />
-      <div className="animate-drift pointer-events-none absolute -top-32 -right-32 h-[28rem] w-[28rem] rounded-full bg-[oklch(0.62_0.24_295/0.30)] blur-3xl" />
-      <div className="animate-drift pointer-events-none absolute -bottom-40 -left-24 h-96 w-96 rounded-full bg-[oklch(0.75_0.16_195/0.20)] blur-3xl [animation-delay:-6s]" />
-      <div className="animate-drift pointer-events-none absolute top-1/2 left-1/3 h-64 w-64 rounded-full bg-[oklch(0.65_0.20_330/0.15)] blur-3xl [animation-delay:-11s]" />
+    <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden border-r border-white/10 bg-[#070707] p-12 text-white xl:p-16 lg:flex">
+      {/* Diagonal scanline stripes + corner glow */}
+      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent_0_10px,rgba(139,92,246,0.03)_10px_20px)]" />
+      <div className="pointer-events-none absolute -left-24 -top-24 h-96 w-96 rounded-full bg-violet-500/10 blur-[110px]" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 rounded-full bg-violet-400/5 blur-[100px]" />
+      {/* Lime edge accent */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-violet-400/60 to-transparent" />
 
+      {/* Brand */}
       <div className="relative flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[oklch(0.62_0.24_295)] text-white shadow-[0_0_28px_-2px] shadow-[oklch(0.62_0.24_295/0.7)]">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-400 text-black shadow-[0_0_26px_-4px_rgba(139,92,246,0.7)]">
           <Layers className="h-5 w-5" />
         </div>
         <span className="font-display text-lg font-bold tracking-tight">
           DoodleBlue
         </span>
+        <span className="rounded-sm border border-violet-400/50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-violet-300">
+          Arena
+        </span>
       </div>
 
-      <div className="relative max-w-md space-y-8">
-        <h1 className="font-display text-4xl font-bold leading-[1.1] tracking-tight xl:text-5xl">
+      {/* Headline + features */}
+      <div className="relative max-w-md space-y-9">
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-bold uppercase tracking-[0.35em] text-violet-400">
+            {"// Player access"}
+          </span>
+          <span className="h-px flex-1 bg-gradient-to-r from-violet-400/40 to-transparent" />
+        </div>
+
+        <h1 className="font-display text-5xl font-bold uppercase leading-[1.02] tracking-tight xl:text-6xl">
           {headline}
         </h1>
-        <p className="text-sm leading-relaxed text-white/55">{subtitle}</p>
+        <p className="max-w-sm text-sm leading-relaxed text-neutral-400">
+          {subtitle}
+        </p>
 
-        <ul className="space-y-5">
-          {features.map((f) => (
+        <ul className="space-y-6">
+          {features.map((f, i) => (
             <li key={f.title} className="flex items-start gap-4">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[oklch(0.70_0.20_295/0.35)] bg-[oklch(0.62_0.24_295/0.12)] shadow-[0_0_16px_-4px] shadow-[oklch(0.62_0.24_295/0.5)]">
-                <f.icon className="h-4 w-4 text-[oklch(0.80_0.15_195)]" />
+              <span className="mt-0.5 font-display text-xs font-bold text-violet-500/70">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-violet-400/30 bg-violet-400/10">
+                <f.icon className="h-4 w-4 text-violet-300" />
               </div>
               <div>
                 <p className="text-sm font-semibold">{f.title}</p>
-                <p className="text-xs leading-relaxed text-white/50">
+                <p className="mt-0.5 text-xs leading-relaxed text-neutral-500">
                   {f.description}
                 </p>
               </div>
@@ -62,7 +84,17 @@ export function AuthBrandPanel({
         </ul>
       </div>
 
-      <p className="relative text-xs text-white/35">{footer}</p>
+      {/* Stats */}
+      <div className="relative flex divide-x divide-white/10">
+        {STATS.map((s, i) => (
+          <div key={s.label} className={i === 0 ? "pr-8" : "px-8"}>
+            <p className="font-display text-2xl font-bold text-violet-400">
+              {s.value}
+            </p>
+            <p className="mt-1 text-[11px] text-neutral-500">{s.label}</p>
+          </div>
+        ))}
+      </div>
     </aside>
   );
 }

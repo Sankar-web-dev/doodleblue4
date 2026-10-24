@@ -125,15 +125,16 @@ export class BookingsService {
     // Overlap check + insert inside one transaction so two simultaneous
     // requests can't double-book past capacity.
     const booking = await this.prisma.$transaction(async (tx) => {
-      const overlapping = await tx.booking.count({
+      const overlapping = await tx.booking.findMany({
         where: {
           gameId: game.id,
           status: { in: [...ACTIVE_STATUSES] },
           startAt: { lt: endAt },
           endAt: { gt: startAt },
         },
+        select: { boardNumber: true },
       });
-      if (overlapping >= game.capacity) {
+      if (overlapping.length >= game.capacity) {
         throw new ApiException(
           409,
           'SLOT_UNAVAILABLE',
@@ -141,8 +142,24 @@ export class BookingsService {
         );
       }
 
+      // Assign the lowest free board/station (1..capacity) — internal
+      // tracking for the venue, never exposed to the customer.
+      const taken = new Set(
+        overlapping
+          .map((b) => b.boardNumber)
+          .filter((n): n is number => n !== null),
+      );
+      let boardNumber: number | null = null;
+      for (let n = 1; n <= game.capacity; n++) {
+        if (!taken.has(n)) {
+          boardNumber = n;
+          break;
+        }
+      }
+
       return tx.booking.create({
         data: {
+          boardNumber,
           userId: user.id,
           gameId: game.id,
           startAt,
@@ -245,6 +262,38 @@ export class BookingsService {
       );
     }
     return booking;
+  }
+
+  /**
+   * Verify booking payment directly with Stripe.
+   * Useful when returning to the application after checkout, avoiding delays
+   * or missed webhooks in dev / high-latency environments.
+   */
+  async verifyBookingPayment(id: string, user: UserModel, sessionId?: string) {
+    const booking = await this.getBooking(id, user);
+
+    if (booking.paymentStatus === 'SUCCEEDED') {
+      return { booking, verified: true };
+    }
+
+    let stripeSessionId = sessionId;
+    if (!stripeSessionId) {
+      const paymentWithSession = booking.payments?.find(
+        (p) => !!p.stripeCheckoutSessionId,
+      );
+      stripeSessionId =
+        paymentWithSession?.stripeCheckoutSessionId ?? undefined;
+    }
+
+    if (!stripeSessionId) {
+      return { booking, verified: false };
+    }
+
+    const { verified } =
+      await this.stripe.verifyBookingCheckoutSession(stripeSessionId);
+
+    const updatedBooking = await this.getBooking(id, user);
+    return { booking: updatedBooking, verified };
   }
 
   // ── availability ────────────────────────────────────────────────────────

@@ -29,6 +29,7 @@ import {
   useCheckout,
   useSubscription,
   useSubscriptionPlans,
+  useVerifySubscription,
 } from "./_hooks/use-subscription";
 
 function statusBadge(status: string) {
@@ -67,7 +68,16 @@ function SubscriptionView() {
   const { data: subscription, isPending } = useSubscription();
   const { data: plans, isPending: plansPending } = useSubscriptionPlans();
   const checkout = useCheckout();
+  const verifySubscription = useVerifySubscription();
   const [interval, setInterval] = useState<BillingInterval>("MONTHLY");
+
+  const sessionId = searchParams.get("session_id");
+
+  useEffect(() => {
+    if (sessionId) {
+      verifySubscription.mutate(sessionId);
+    }
+  }, [sessionId, verifySubscription]);
 
   // Stripe sends users back to /subscription?cancelled=true on abort.
   useEffect(() => {

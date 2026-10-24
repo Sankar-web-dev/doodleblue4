@@ -6,7 +6,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUrl,
   Matches,
   Max,
   MaxLength,
@@ -45,8 +44,11 @@ export class CreateGameDto {
   @MaxLength(60)
   category!: string;
 
+  /** http(s) URL or a site-relative path served by the API (e.g. /api/v1/storage/<id>). */
   @IsOptional()
-  @IsUrl()
+  @Matches(/^(\/|https?:\/\/)\S+$/, {
+    message: 'imageUrl must be an http(s) URL or a path starting with /',
+  })
   @MaxLength(500)
   imageUrl?: string;
 
@@ -71,13 +73,21 @@ export class CreateGameDto {
   @Max(1440)
   maxBookingMins?: number;
 
-  /** Simultaneous bookings allowed for this game. */
+  /** Boards/stations — simultaneous bookings allowed for this game. */
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)
   capacity?: number;
+
+  /** Players per booking/session — shown to customers. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  maxPlayers?: number;
 
   @IsOptional()
   @IsEnum(GameStatus)
@@ -120,8 +130,11 @@ export class UpdateGameDto {
   @MaxLength(60)
   category?: string;
 
+  /** http(s) URL or a site-relative path served by the API (e.g. /api/v1/storage/<id>). */
   @IsOptional()
-  @IsUrl()
+  @Matches(/^(\/|https?:\/\/)\S+$/, {
+    message: 'imageUrl must be an http(s) URL or a path starting with /',
+  })
   @MaxLength(500)
   imageUrl?: string | null;
 
@@ -152,6 +165,14 @@ export class UpdateGameDto {
   @Min(1)
   @Max(100)
   capacity?: number;
+
+  /** Players per booking/session — shown to customers. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  maxPlayers?: number;
 
   @IsOptional()
   @IsEnum(GameStatus)

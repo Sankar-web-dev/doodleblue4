@@ -65,6 +65,8 @@ export interface Booking {
   status: BookingStatus;
   paymentMethod: BookingPaymentMethod;
   paymentStatus: PaymentStatus;
+  /** Physical board/station number — venue tracking only. */
+  boardNumber: number | null;
   customerNote: string | null;
   adminNote: string | null;
   cancelledAt: string | null;
@@ -75,6 +77,14 @@ export interface Booking {
   game: BookingGame;
   user: BookingUser;
   payments?: BookingPayment[];
+}
+
+export interface CreateBookingInput {
+  gameId: string;
+  startAt: string;
+  endAt: string;
+  paymentMethod: BookingPaymentMethod;
+  customerNote?: string;
 }
 
 export interface ListBookingsParams {
@@ -119,13 +129,7 @@ export const bookingsApi = {
 
   get: (id: string) => api.get<Booking>(`/api/v1/bookings/${id}`),
 
-  create: (input: {
-    gameId: string;
-    startAt: string;
-    endAt: string;
-    paymentMethod: BookingPaymentMethod;
-    customerNote?: string;
-  }) =>
+  create: (input: CreateBookingInput) =>
     api.post<{ booking: Booking; checkoutUrl: string | null }>(
       "/api/v1/bookings",
       input
@@ -133,6 +137,12 @@ export const bookingsApi = {
 
   cancel: (id: string, reason?: string) =>
     api.post<Booking>(`/api/v1/bookings/${id}/cancel`, { reason }),
+
+  /** Customer verifies payment on return from Stripe checkout. */
+  verifyPayment: (id: string, sessionId?: string) =>
+    api.post<{ booking: Booking; verified: boolean }>(
+      `/api/v1/bookings/${id}/verify-payment${sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : ""}`
+    ),
 
   /** Admin-only status/payment transitions. */
   updateStatus: (id: string, input: UpdateBookingStatusInput) =>
