@@ -63,6 +63,12 @@ enum BillingInterval {
   YEARLY
 }
 
+enum TestimonialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ======================================================
 // USERS
 // No dynamic RBAC. The app has only a shop owner/admin
@@ -82,6 +88,7 @@ model User {
   subscription Subscription?
   bookings     Booking[]
   payments     Payment[]
+  testimonials Testimonial[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -298,3 +305,32 @@ model StoredFile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ======================================================
+// TESTIMONIALS
+// Customer reviews & ratings. Admin reviews submissions,
+// approves/rejects them, and marks selected testimonials
+// to be featured on the hero / landing page.
+// ======================================================
+
+model Testimonial {
+  id        String            @id @default(uuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  rating    Int               @default(5)
+  headline  String?
+  content   String
+  status    TestimonialStatus @default(PENDING)
+  isHero    Boolean           @default(false)
+  adminNote String?
+
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([status])
+  @@index([isHero])
+  @@index([userId])
+  @@index([createdAt])
+}
+

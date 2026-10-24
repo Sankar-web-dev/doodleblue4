@@ -7,6 +7,7 @@ import { HowItWorks } from "./how-it-works";
 import { LandingFooter } from "./landing-footer";
 import { LandingHeader } from "./landing-header";
 import { PricingSection } from "./pricing-section";
+import { TestimonialsSection } from "./testimonials-section";
 
 /** Landing page — lime esports HUD theme, section-by-section scroll. */
 export function LandingView() {
@@ -18,6 +19,7 @@ export function LandingView() {
       <HowItWorks />
       <FeaturesSection />
       <ArenaSection />
+      <TestimonialsSection />
       <PricingSection />
       <CtaSection />
       <LandingFooter />
