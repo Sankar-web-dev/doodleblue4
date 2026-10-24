@@ -44,6 +44,7 @@ import {
 import {
   useAllBookings,
   useUpdateBookingStatus,
+  useVerifyBookingPayment,
 } from "../_hooks/use-bookings";
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
@@ -73,7 +74,8 @@ function fmtDateTime(iso: string) {
 
 function BookingRow({ booking }: { booking: Booking }) {
   const update = useUpdateBookingStatus();
-  const busy = update.isPending;
+  const verify = useVerifyBookingPayment();
+  const busy = update.isPending || verify.isPending;
 
   const act = (input: Parameters<typeof update.mutate>[0]["input"]) =>
     update.mutate({ id: booking.id, input });
@@ -142,6 +144,16 @@ function BookingRow({ booking }: { booking: Booking }) {
                   Confirm booking
                 </DropdownMenuItem>
               )}
+              {booking.paymentStatus === "PENDING" &&
+                booking.paymentMethod === "STRIPE" &&
+                booking.status !== "CANCELLED" && (
+                  <DropdownMenuItem
+                    onClick={() => verify.mutate({ id: booking.id })}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Verify Stripe payment
+                  </DropdownMenuItem>
+                )}
               {booking.paymentStatus === "PENDING" &&
                 booking.status !== "CANCELLED" && (
                   <DropdownMenuItem

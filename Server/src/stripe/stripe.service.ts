@@ -189,7 +189,7 @@ export class StripeService {
         bookingId: booking.id,
         userId: user.id,
       },
-      success_url: `${this.frontendUrl}/bookings?paid=${booking.id}`,
+      success_url: `${this.frontendUrl}/bookings?paid=${booking.id}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${this.frontendUrl}/bookings?cancelled=${booking.id}`,
     });
 
@@ -231,10 +231,23 @@ export class StripeService {
   }
 
   /**
+   * Directly verify a checkout session with Stripe.
+   * If paid, marks the payment and booking as SUCCEEDED immediately.
+   */
+  async verifyBookingCheckoutSession(sessionId: string) {
+    const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status === 'paid') {
+      await this.handleBookingPaymentCompleted(session);
+      return { verified: true, session };
+    }
+    return { verified: false, session };
+  }
+
+  /**
    * A booking checkout finished — mark the payment succeeded and confirm
    * the booking. Idempotent (checkout.session.completed may be redelivered).
    */
-  private async handleBookingPaymentCompleted(
+  async handleBookingPaymentCompleted(
     session: Stripe.Checkout.Session,
   ) {
     const payment = await this.prisma.payment.findUnique({
@@ -249,18 +262,23 @@ export class StripeService {
     }
     if (payment.status === 'SUCCEEDED') return;
 
+    const newStatus =
+      payment.booking?.status === 'COMPLETED'
+        ? 'COMPLETED'
+        : 'CONFIRMED';
+
     await this.prisma.$transaction([
       this.prisma.payment.update({
         where: { id: payment.id },
         data: {
           status: 'SUCCEEDED',
-          paidAt: new Date(),
+          paidAt: payment.paidAt ?? new Date(),
           stripePaymentIntentId: idOf(session.payment_intent),
         },
       }),
       this.prisma.booking.update({
         where: { id: payment.bookingId! },
-        data: { status: 'CONFIRMED', paymentStatus: 'SUCCEEDED' },
+        data: { status: newStatus, paymentStatus: 'SUCCEEDED' },
       }),
     ]);
   }

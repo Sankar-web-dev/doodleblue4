@@ -264,6 +264,38 @@ export class BookingsService {
     return booking;
   }
 
+  /**
+   * Verify booking payment directly with Stripe.
+   * Useful when returning to the application after checkout, avoiding delays
+   * or missed webhooks in dev / high-latency environments.
+   */
+  async verifyBookingPayment(id: string, user: UserModel, sessionId?: string) {
+    const booking = await this.getBooking(id, user);
+
+    if (booking.paymentStatus === 'SUCCEEDED') {
+      return { booking, verified: true };
+    }
+
+    let stripeSessionId = sessionId;
+    if (!stripeSessionId) {
+      const paymentWithSession = booking.payments?.find(
+        (p) => !!p.stripeCheckoutSessionId,
+      );
+      stripeSessionId =
+        paymentWithSession?.stripeCheckoutSessionId ?? undefined;
+    }
+
+    if (!stripeSessionId) {
+      return { booking, verified: false };
+    }
+
+    const { verified } =
+      await this.stripe.verifyBookingCheckoutSession(stripeSessionId);
+
+    const updatedBooking = await this.getBooking(id, user);
+    return { booking: updatedBooking, verified };
+  }
+
   // ── availability ────────────────────────────────────────────────────────
 
   /**
