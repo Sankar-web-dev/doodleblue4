@@ -138,6 +138,12 @@ export const bookingsApi = {
   cancel: (id: string, reason?: string) =>
     api.post<Booking>(`/api/v1/bookings/${id}/cancel`, { reason }),
 
+  /** Customer verifies payment on return from Stripe checkout. */
+  verifyPayment: (id: string, sessionId?: string) =>
+    api.post<{ booking: Booking; verified: boolean }>(
+      `/api/v1/bookings/${id}/verify-payment${sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : ""}`
+    ),
+
   /** Admin-only status/payment transitions. */
   updateStatus: (id: string, input: UpdateBookingStatusInput) =>
     api.patch<Booking>(`/api/v1/bookings/${id}/status`, input),

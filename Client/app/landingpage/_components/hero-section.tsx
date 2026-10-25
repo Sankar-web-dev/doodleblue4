@@ -3,6 +3,7 @@ import { ArrowRight, Play } from "lucide-react";
 
 import { STATS } from "../_lib/constants";
 import { Reveal } from "./reveal";
+import { HeroTestimonialPill } from "./hero-testimonial-pill";
 
 const CORNER = "pointer-events-none absolute h-5 w-5 border-violet-400/70";
 
@@ -61,6 +62,7 @@ export function HeroSection() {
                 Sign in
               </Link>
             </div>
+            <HeroTestimonialPill />
           </Reveal>
 
           <Reveal delay={400}>

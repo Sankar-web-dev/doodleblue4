@@ -58,6 +58,18 @@ export function useCancelBooking() {
   });
 }
 
+/** Verify booking payment on return from Stripe checkout. */
+export function useVerifyBookingPayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, sessionId }: { id: string; sessionId?: string }) =>
+      bookingsApi.verifyPayment(id, sessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: BOOKINGS_LIST_KEY });
+    },
+  });
+}
+
 /** Admin — status transitions + counter payment collection. */
 export function useUpdateBookingStatus() {
   const queryClient = useQueryClient();

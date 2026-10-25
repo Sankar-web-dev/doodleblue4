@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   subscriptionsApi,
@@ -47,6 +47,21 @@ export function useCheckout() {
           ? error.message
           : "Unable to start checkout. Please try again."
       );
+    },
+  });
+}
+
+/** Verify a subscription checkout session directly on return. */
+export function useVerifySubscription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) =>
+      subscriptionsApi.verifyCheckout(sessionId),
+    onSuccess: (data) => {
+      if (data?.subscription) {
+        queryClient.setQueryData(SUBSCRIPTION_KEY, data.subscription);
+      }
+      queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEY });
     },
   });
 }

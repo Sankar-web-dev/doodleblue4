@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   CalendarDays,
@@ -12,13 +14,22 @@ import {
   XCircle,
 } from "lucide-react";
 
-import type { Booking, BookingStatus, PaymentStatus } from "@/api/bookings.api";
+import {
+  BOOKINGS_LIST_KEY,
+  type Booking,
+  type BookingStatus,
+  type PaymentStatus,
+} from "@/api/bookings.api";
 import { formatINR } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { useCancelBooking, useMyBookings } from "../_hooks/use-bookings";
+import {
+  useCancelBooking,
+  useMyBookings,
+  useVerifyBookingPayment,
+} from "../_hooks/use-bookings";
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
   PENDING: "bg-amber-500/90 text-white border-amber-400/40",
@@ -116,10 +127,45 @@ function BookingRow({ booking }: { booking: Booking }) {
 export function MyBookings() {
   const params = useSearchParams();
   const paidId = params.get("paid");
+  const sessionId = params.get("session_id");
   const cancelledId = params.get("cancelled");
 
+  const queryClient = useQueryClient();
   const { data, isPending, error, refetch } = useMyBookings();
   const bookings = Array.isArray(data?.data) ? data.data : [];
+
+  const verifyPayment = useVerifyBookingPayment();
+  const verifiedRef = useRef<string | null>(null);
+
+  // If returning from Stripe with ?paid=..., verify payment directly with Stripe
+  // and trigger polling intervals as a backup.
+  useEffect(() => {
+    if (!paidId || verifiedRef.current === paidId) return;
+    verifiedRef.current = paidId;
+
+    verifyPayment.mutate({
+      id: paidId,
+      sessionId: sessionId ?? undefined,
+    });
+
+    // Invalidate/refetch query a couple times to ensure list reflects final status
+    const t1 = setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: BOOKINGS_LIST_KEY });
+    }, 1500);
+    const t2 = setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: BOOKINGS_LIST_KEY });
+    }, 4000);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [paidId, sessionId, queryClient, verifyPayment]);
+
+  const targetBooking = paidId ? bookings.find((b) => b.id === paidId) : null;
+  const isPaidConfirmed =
+    targetBooking?.paymentStatus === "SUCCEEDED" ||
+    verifyPayment.data?.verified;
 
   return (
     <div className="flex flex-col gap-6">
@@ -134,10 +180,38 @@ export function MyBookings() {
 
       {/* Stripe redirect banners */}
       {paidId && (
-        <Card className="border-emerald-500/30 bg-emerald-500/5">
-          <CardContent className="flex items-center gap-2 p-4 text-sm font-medium text-emerald-500">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            Payment received — your booking is confirmed once Stripe settles.
+        <Card
+          className={
+            isPaidConfirmed
+              ? "border-emerald-500/30 bg-emerald-500/5"
+              : verifyPayment.isPending
+                ? "border-primary/30 bg-primary/5"
+                : "border-emerald-500/30 bg-emerald-500/5"
+          }
+        >
+          <CardContent className="flex items-center gap-2 p-4 text-sm font-medium">
+            {verifyPayment.isPending && !isPaidConfirmed ? (
+              <>
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+                <span className="text-primary">
+                  Verifying your payment with Stripe…
+                </span>
+              </>
+            ) : isPaidConfirmed ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                <span className="text-emerald-500">
+                  Payment confirmed! Your booking is paid and confirmed.
+                </span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                <span className="text-emerald-500">
+                  Payment received — your booking is confirmed once Stripe settles.
+                </span>
+              </>
+            )}
           </CardContent>
         </Card>
       )}

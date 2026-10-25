@@ -6,7 +6,7 @@ import type {
   BillingInterval,
   MembershipStatus,
 } from '../generated/prisma/enums.js';
-import type { BookingModel } from '../generated/prisma/models.js';
+import type { BookingModel, UserModel } from '../generated/prisma/models.js';
 
 /** Current period end — on subscription items in recent Stripe API versions. */
 function subscriptionPeriodEnd(sub: Stripe.Subscription): Date | null {
@@ -95,6 +95,99 @@ export class StripeService {
       where: { userId },
       include: { membershipPlan: true },
     });
+  }
+
+  /**
+   * Sync a user's subscription from Stripe if missing or inactive in the local DB.
+   * Checks recent checkout sessions or customer subscriptions for this user.
+   */
+  async syncUserSubscriptionFromStripe(user: { id: string; email: string }) {
+    const existing = await this.getSubscription(user.id);
+    if (existing && existing.status === 'active') {
+      return existing;
+    }
+
+    try {
+      const sessions = await this.stripe.checkout.sessions.list({
+        limit: 10,
+      });
+      const userSession = sessions.data.find(
+        (s) =>
+          s.mode === 'subscription' &&
+          (s.status === 'complete' || s.payment_status === 'paid') &&
+          (s.client_reference_id === user.id ||
+            s.metadata?.userId === user.id ||
+            s.customer_email?.toLowerCase() === user.email.toLowerCase()),
+      );
+
+      if (userSession && userSession.subscription) {
+        const subId = idOf(userSession.subscription);
+        if (subId) {
+          const subscription =
+            await this.stripe.subscriptions.retrieve(subId);
+          await this.syncSubscription(subscription, {
+            userId: user.id,
+            stripeCustomerId: idOf(userSession.customer) ?? undefined,
+            membershipPlanId:
+              userSession.metadata?.membershipPlanId ?? undefined,
+            billingInterval:
+              (userSession.metadata?.billingInterval as BillingInterval) ??
+              undefined,
+            planName: userSession.metadata?.planName ?? undefined,
+          });
+          return this.getSubscription(user.id);
+        }
+      }
+    } catch (err) {
+      this.logger.warn(`Could not sync subscription from Stripe: ${err}`);
+    }
+
+    return existing;
+  }
+
+  /**
+   * Directly verify a membership checkout session with Stripe.
+   * If completed/paid, syncs the subscription immediately into the DB.
+   */
+  async verifyMembershipCheckoutSession(sessionId: string, user: UserModel) {
+    const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+
+    const sessionUserId =
+      session.client_reference_id ?? session.metadata?.userId;
+    if (
+      sessionUserId &&
+      sessionUserId !== user.id &&
+      user.role !== 'SUPER_ADMIN'
+    ) {
+      throw new ApiException(
+        403,
+        'FORBIDDEN',
+        'This checkout session belongs to another user',
+      );
+    }
+
+    if (session.status === 'complete' || session.payment_status === 'paid') {
+      const subscriptionId = idOf(session.subscription);
+      if (subscriptionId) {
+        const subscription =
+          await this.stripe.subscriptions.retrieve(subscriptionId);
+        await this.syncSubscription(subscription, {
+          userId: session.client_reference_id ?? user.id,
+          stripeCustomerId: idOf(session.customer) ?? undefined,
+          membershipPlanId:
+            session.metadata?.membershipPlanId ?? undefined,
+          billingInterval:
+            (session.metadata?.billingInterval as BillingInterval) ??
+            undefined,
+          planName: session.metadata?.planName ?? undefined,
+        });
+      }
+      const current = await this.getSubscription(user.id);
+      return { verified: true, subscription: current };
+    }
+
+    const current = await this.getSubscription(user.id);
+    return { verified: false, subscription: current };
   }
 
   /**
@@ -191,7 +284,7 @@ export class StripeService {
         bookingId: booking.id,
         userId: user.id,
       },
-      success_url: `${this.frontendUrl}/bookings?paid=${booking.id}`,
+      success_url: `${this.frontendUrl}/bookings?paid=${booking.id}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${this.frontendUrl}/bookings?cancelled=${booking.id}`,
     });
 
@@ -233,10 +326,23 @@ export class StripeService {
   }
 
   /**
+   * Directly verify a checkout session with Stripe.
+   * If paid, marks the payment and booking as SUCCEEDED immediately.
+   */
+  async verifyBookingCheckoutSession(sessionId: string) {
+    const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status === 'paid') {
+      await this.handleBookingPaymentCompleted(session);
+      return { verified: true, session };
+    }
+    return { verified: false, session };
+  }
+
+  /**
    * A booking checkout finished — mark the payment succeeded and confirm
    * the booking. Idempotent (checkout.session.completed may be redelivered).
    */
-  private async handleBookingPaymentCompleted(
+  async handleBookingPaymentCompleted(
     session: Stripe.Checkout.Session,
   ) {
     const payment = await this.prisma.payment.findUnique({
@@ -251,18 +357,23 @@ export class StripeService {
     }
     if (payment.status === 'SUCCEEDED') return;
 
+    const newStatus =
+      payment.booking?.status === 'COMPLETED'
+        ? 'COMPLETED'
+        : 'CONFIRMED';
+
     await this.prisma.$transaction([
       this.prisma.payment.update({
         where: { id: payment.id },
         data: {
           status: 'SUCCEEDED',
-          paidAt: new Date(),
+          paidAt: payment.paidAt ?? new Date(),
           stripePaymentIntentId: idOf(session.payment_intent),
         },
       }),
       this.prisma.booking.update({
         where: { id: payment.bookingId! },
-        data: { status: 'CONFIRMED', paymentStatus: 'SUCCEEDED' },
+        data: { status: newStatus, paymentStatus: 'SUCCEEDED' },
       }),
     ]);
   }
@@ -325,9 +436,15 @@ export class StripeService {
     const stripeCustomerId =
       extras.stripeCustomerId ?? idOf(subscription.customer);
 
-    const existing = await this.prisma.subscription.findUnique({
-      where: { stripeSubscriptionId: subscription.id },
-    });
+    const existing =
+      (await this.prisma.subscription.findUnique({
+        where: { stripeSubscriptionId: subscription.id },
+      })) ??
+      (userId
+        ? await this.prisma.subscription.findUnique({
+            where: { userId },
+          })
+        : null);
     const resolvedUserId = userId ?? existing?.userId;
 
     if (!resolvedUserId) {
@@ -366,10 +483,21 @@ export class StripeService {
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
     };
 
-    await this.prisma.subscription.upsert({
-      where: { stripeSubscriptionId: subscription.id },
-      create: { stripeSubscriptionId: subscription.id, ...data },
-      update: data,
-    });
+    if (existing) {
+      await this.prisma.subscription.update({
+        where: { id: existing.id },
+        data: {
+          stripeSubscriptionId: subscription.id,
+          ...data,
+        },
+      });
+    } else {
+      await this.prisma.subscription.create({
+        data: {
+          stripeSubscriptionId: subscription.id,
+          ...data,
+        },
+      });
+    }
   }
 }

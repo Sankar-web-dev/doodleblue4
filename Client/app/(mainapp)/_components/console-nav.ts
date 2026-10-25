@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Receipt,
   Users,
+  MessageSquareQuote,
 } from "lucide-react";
 
 export type NavItem = {
@@ -29,6 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/games",        label: "Games",        icon: Gamepad2 },
   { href: "/plans",        label: "Plans",        icon: Crown,           adminOnly: true },
   { href: "/payments",     label: "Payments",     icon: Receipt,         adminOnly: true },
+  { href: "/testimonials", label: "Testimonials", icon: MessageSquareQuote },
   { href: "/reports",      label: "Reports",      icon: BarChart3,       adminOnly: true },
   { href: "/users",        label: "Users",        icon: Users,           adminOnly: true },
   { href: "/subscription", label: "Billing",      icon: CreditCard },

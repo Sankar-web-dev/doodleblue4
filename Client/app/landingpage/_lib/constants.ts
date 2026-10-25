@@ -12,8 +12,9 @@ import {
 export const NAV_LINKS = [
   { label: "Games", href: "#games" },
   { label: "How it works", href: "#how-it-works" },
-  { label: "Membership", href: "#membership" },
   { label: "Arena", href: "#arena" },
+  { label: "Reviews", href: "#reviews" },
+  { label: "Membership", href: "#membership" },
 ];
 
 export const STATS = [
