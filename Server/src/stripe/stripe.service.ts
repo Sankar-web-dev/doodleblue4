@@ -74,11 +74,13 @@ export class StripeService {
   }
 
   private get frontendUrl() {
-    return (
+    // CLIENT_URL may be a comma-separated CORS origin list — take the first
+    // and strip trailing slashes so success/cancel URLs stay valid.
+    const raw =
       process.env.FRONTEND_URL ??
       process.env.CLIENT_URL ??
-      'http://localhost:3000'
-    );
+      'http://localhost:3000';
+    return raw.split(',')[0].trim().replace(/\/+$/, '');
   }
 
   constructor(private readonly prisma: PrismaService) {}
